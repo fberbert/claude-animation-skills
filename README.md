@@ -2,7 +2,7 @@
 
 Skills for Claude Code that make animations for reels, with no footage needed. You type `/map-route home to the gym, 2.8 km` and Claude writes the spec, renders the animation on your own computer and checks it against Instagram's safe area.
 
-> **Este fork** é usado no curso presencial "Vídeo com IA: do zero ao publicado" ([material do aluno](https://github.com/fberbert/curso-video-ia-kit)). Mudanças em relação ao [original](https://github.com/artemnovitckii/claude-animation-skills):
+> **Este fork** é usado no curso presencial "Vídeos e Animações com IA: do zero ao publicado" ([material do aluno](https://github.com/fberbert/curso-video-ia-kit)). Mudanças em relação ao [original](https://github.com/artemnovitckii/claude-animation-skills):
 >
 > - **Português do Brasil por padrão:** números no formato brasileiro no `/graph` (`R$ 18.750,50`; `"locale": "en-US"` volta ao americano), textos do `/map-route` em português ("Chegou", "faltam 1,2 km"; `"lang": "en"` volta ao inglês) e exemplos do `/breakdown` em português.
 > - **Instalação em Python** (`install.py` e `kit/setup.py`), pensada também para o Windows; `install.sh` e `kit/setup.sh` só chamam os dois.
