@@ -6,13 +6,13 @@
 //   fala: false desliga a boca automática (personagem de boca fechada mesmo durante a própria fala)
 const ELENCO = window.ELENCO || {};
 const FALAS = window.FALAS || [];
-// camadas recortadas de um desenho (tools/recorte.py): cada PNG cobre de -2 a +2 raios da cabeça, centrado nos olhos.
+// camadas recortadas de um desenho (tools/recorte.py): cada PNG cobre de -lado a +lado raios da cabeça (padrão 2), centrado nos olhos.
 // O falas.py (e o ficha.js) põem a imagem dentro da ficha, em "dados"; o render espera todas carregarem.
 window.ELENCO_PRONTO = Promise.all(Object.values(ELENCO).flatMap(f => (f.imagens || []).map(im => {
   im.img = new Image(); im.img.src = im.dados; return im.img.decode();
 })));
 function camadasImagem(ctx, f, camada, hx, hy, hr) {
-  for (const im of f.imagens || []) if ((im.camada || 'frente') === camada && im.img) ctx.drawImage(im.img, hx - 2 * hr, hy - 2 * hr, 4 * hr, 4 * hr);
+  for (const im of f.imagens || []) if ((im.camada || 'frente') === camada && im.img) { const l = im.lado || 2; ctx.drawImage(im.img, hx - l * hr, hy - l * hr, 2 * l * hr, 2 * l * hr); }
 }
 
 function escurecer(hex, k = .12) {
@@ -263,13 +263,180 @@ const ACESSORIOS = {
     rrect(ctx, x - .06, p.y + .008, .12, .016, .007); fillStroke(ctx, escurecer(cor, .35), p.lw * .6);
     ellipse(ctx, x + p.side * .025, p.y - .02, .014, .006, p.side * -.4); ctx.fillStyle = 'rgba(255,255,255,.45)'; ctx.fill();   // brilho no bico
   } },
+  coturno: { onde: 'pe', cor: '#9a5a2e', desenha: (ctx, p, cor, f, a) => {   // bota de cano curto com sola grossa e cadarço ("cadarco": cor)
+    const x = p.x + p.side * .014, cano = p.x - p.side * .008, lw = p.lw * .7, cad = a.cadarco || '#e0453a';
+    rrect(ctx, cano - .031, p.y - .064, .062, .06, .014); fillStroke(ctx, cor, lw);                                  // cano
+    rrect(ctx, cano - .033, p.y - .07, .066, .016, .007); fillStroke(ctx, escurecer(cor, .18), lw);                   // borda do cano
+    ctx.beginPath(); ctx.ellipse(x, p.y - .01, .062, .036, 0, Math.PI, 0); ctx.lineTo(x + .062, p.y + .012); ctx.lineTo(x - .062, p.y + .012); ctx.closePath(); fillStroke(ctx, cor, lw);   // pé
+    rrect(ctx, x - .067, p.y + .006, .134, .026, .009); fillStroke(ctx, escurecer(cor, .5), lw);                       // sola
+    for (let i = -2; i <= 2; i++) line(ctx, x + i * .025, p.y + .026, x + i * .025, p.y + .032, .007, INK);             // sola tratorada
+    for (const yy of [-.05, -.03]) { line(ctx, cano - .015, p.y + yy, cano + .015, p.y + yy + .012, .007, cad); line(ctx, cano + .015, p.y + yy, cano - .015, p.y + yy + .012, .007, cad); }
+    ellipse(ctx, x + p.side * .028, p.y - .026, .013, .006, p.side * -.4); ctx.fillStyle = 'rgba(255,255,255,.3)'; ctx.fill();   // brilho no bico
+  } },
+  meias: { cor: 'arco-iris', perna: (ctx, p, cor, f, a) => {   // meia por baixo do sapato; cor 'arco-iris' (padrão) faz as listras no trecho que aparece acima do cano; "altura": fração da canela
+    const [, joelho, pe] = p.pts, de = 1 - (a.altura ?? .7), cores = cor === 'arco-iris' ? ARCO_IRIS : [cor];
+    faixas(ctx, joelho, pe, .5, 1.04, cores.slice(-1), .036, p.lw);   // o pé da meia, que o cano cobre
+    faixas(ctx, joelho, pe, de, .58, cores, .036, p.lw);
+  } },
+  pulseira: { cor: 'arco-iris', manga: (ctx, p, cor, f, a) => {   // no pulso: "lado" 'L' ou 'R' (o braço de shots.js; sem lado, os dois); "estilo": 'xuxinha' (franzida)
+    if (a.lado && a.lado !== (p.side < 0 ? 'L' : 'R')) return;
+    const [, cotovelo, mao] = p.pts;
+    if (a.estilo === 'xuxinha') {
+      faixas(ctx, cotovelo, mao, .6, .82, [cor], .062, p.lw);
+      for (const k of [.66, .71, .76]) { const x = cotovelo[0] + (mao[0] - cotovelo[0]) * k, y = cotovelo[1] + (mao[1] - cotovelo[1]) * k; circle(ctx, x, y, .012); ctx.fillStyle = escurecer(cor, .18); ctx.fill(); }   // franzido
+      return;
+    }
+    faixas(ctx, cotovelo, mao, .62, .8, cor === 'arco-iris' ? ARCO_IRIS : [cor], .046, p.lw);
+  } },
+  estampa: { onde: 'roupa', cor: '#f6c419', desenha: (ctx, p, cor, f, a) => {   // estampa no peito: "simbolo" 'foice-martelo' (padrão) ou 'estrela'; "tamanho", "x", "y"
+    ctx.save(); ctx.translate(a.x ?? 0, p.tTop + (a.y ?? .14)); const k = a.tamanho ?? .09; ctx.scale(k, k); semEspelho(ctx);
+    if (a.simbolo === 'estrela') star5(ctx, 0, 0, .55, 0, cor);
+    else {
+      ctx.fillStyle = cor; ctx.strokeStyle = cor; ctx.lineCap = 'round';
+      // foice: a lâmina sai do alto à esquerda, contorna pela direita e desce até o cabo, embaixo à esquerda
+      ctx.beginPath(); ctx.arc(0, 0, .46, -2.3, 2.05, false); ctx.arc(-.08, -.06, .38, 2.2, -2.4, true); ctx.closePath(); ctx.fill();   // lâmina
+      ctx.beginPath(); ctx.moveTo(-.2, .42); ctx.lineTo(-.42, .6); ctx.lineWidth = .15; ctx.stroke();                                     // cabo da foice
+      ctx.beginPath(); ctx.moveTo(.42, .5); ctx.lineTo(-.12, -.06); ctx.lineWidth = .12; ctx.stroke();                              // cabo do martelo
+      ctx.save(); ctx.translate(-.17, -.13); ctx.rotate(-Math.PI / 4); ctx.beginPath(); ctx.roundRect(-.25, -.09, .5, .18, .03); ctx.fill(); ctx.restore();   // cabeça do martelo
+    }
+    ctx.restore();
+  } },
+  botton: { onde: 'roupa', cor: '#d8231f', desenha: (ctx, p, cor, f, a) => {   // bóton redondo no peito: "texto" curto, "corTexto", "x" (em larguras do tronco), "y", "raio"
+    const x = p.tw * (a.x ?? .15), y = p.tTop + (a.y ?? .08), r = a.raio ?? .026;   // perto do meio: a manga da camiseta cobre o canto do peito; "x" negativo fica do outro lado
+    circle(ctx, x, y, r); fillStroke(ctx, cor, p.lw * .6);
+    ellipse(ctx, x - r * .4, y - r * .45, r * .3, r * .16, -.5); ctx.fillStyle = 'rgba(255,255,255,.4)'; ctx.fill();
+    if (a.texto) { ctx.save(); ctx.translate(x, y + r * .08); ctx.scale(.001, .001); semEspelho(ctx); text(ctx, a.texto, 0, 0, r * 1000 * (a.texto.length > 2 ? .7 : 1), a.corTexto || '#fff', null, 0, 'Poppins', 700); ctx.restore(); }
+  } },
+  saia: { onde: 'roupa', cor: '#2e2829', desenha: (ctx, p, cor, f, a) => {   // saia com barra rasgada e cinto; "remendos": ['coracao', 'trans', 'folha', 'punho'], "corrente", "contas", "fita" (arco-íris)
+    const { tw, tTop, tBot, lw } = p, cint = tTop + (a.cintura ?? .2), barra = tBot + (a.barra ?? .1), abre = tw * .14, n = 9, r = rng(5);
+    const forma = () => {
+      ctx.beginPath(); ctx.moveTo(-tw / 2, cint); ctx.lineTo(tw / 2, cint);
+      for (let i = 0; i <= n; i++) ctx.lineTo(tw / 2 + abre - (tw + 2 * abre) * i / n, barra + (a.rasgada === false ? 0 : i % 2 ? -.022 - r() * .01 : .012 + r() * .008));
+      ctx.closePath();
+    };
+    forma(); fillStroke(ctx, cor, lw);
+    ctx.save(); forma(); ctx.clip(); ctx.fillStyle = 'rgba(0,0,0,.18)'; ctx.fillRect(tw * .28, cint, tw, 1); ctx.restore();   // lado na sombra
+    if (a.corrente) for (let i = 0; i <= 8; i++) {   // corrente de elos prateados caindo do quadril para o meio
+      const k = i / 8, x = lerp(-tw * .44, -tw * .04, k), y = cint + .04 + Math.sin(k * Math.PI) * .03;
+      ctx.beginPath(); ctx.ellipse(x, y, .009, .0055, i % 2 ? .4 : -.4, 0, TAU); ctx.lineWidth = .004; ctx.strokeStyle = '#c9ccd2'; ctx.stroke();
+    }
+    if (a.contas) for (let i = 0; i <= 9; i++) {      // fio de contas amarelas do meio para o outro quadril
+      const k = i / 9, x = lerp(-tw * .02, tw * .44, k), y = cint + .045 + Math.sin(k * Math.PI) * .032;
+      ctx.beginPath(); ctx.arc(x, y, .0085, 0, TAU); fillStroke(ctx, '#f0a520', .003);
+    }
+    const vagas = [[-.25, .45], [-.03, .76], [.27, .43], [.31, .76], [-.27, .78]];   // em cima à esquerda, embaixo no meio, em cima à direita...
+    (a.remendos || []).forEach((nome, i) => { const [vx, vy] = vagas[i % vagas.length]; REMENDOS[nome]?.(ctx, tw * vx, cint + (barra - cint) * vy, .034); });
+    if (a.cinto !== false) {
+      rrect(ctx, -tw / 2 - .004, cint - .004, tw + .008, .034, .006); fillStroke(ctx, '#1d1b1e', lw * .8);
+      rrect(ctx, -.026, cint - .002, .052, .03, .006); ctx.lineWidth = .008; ctx.strokeStyle = '#c9ccd2'; ctx.stroke();   // fivela
+      line(ctx, -.004, cint + .013, .016, cint + .013, .006, '#c9ccd2');
+    }
+    if (a.fita) {                                     // fita de arco-íris presa no cinto, caindo pela lateral
+      const w = .0075, x0 = -tw / 2 - abre * .45, y0 = cint + .03;
+      ARCO_IRIS.forEach((c, i) => {
+        const x = x0 + i * w, y1 = barra + .035 + (i % 2 ? -.01 : 0);
+        ctx.beginPath(); ctx.moveTo(x, y0); ctx.lineTo(x + w, y0); ctx.lineTo(x + w, y1 - .01); ctx.lineTo(x + w / 2, y1); ctx.lineTo(x, y1 - .01); ctx.closePath();
+        ctx.fillStyle = c; ctx.fill();
+      });
+      ctx.beginPath(); ctx.rect(x0, y0, w * 6, barra + .025 - y0); ctx.lineWidth = .004; ctx.strokeStyle = INK; ctx.stroke();
+    }
+  } },
+  ecobag: { onde: 'roupa', cor: '#f3ead6', desenha: (ctx, p, cor, f, a) => {   // sacola de pano no ombro, ao lado do quadril; "estampa": 'che' (padrão) ou 'nenhuma'
+    const { tw, tTop, tBot, lw } = p, x0 = -tw / 2 - .19, x1 = -tw / 2 - .035, y0 = tTop + .2, y1 = tBot + .1;   // pendurada por fora do braço parado
+    line(ctx, -tw * .3, tTop, x1 - .03, y0 + .01, .024); line(ctx, -tw * .3, tTop, x1 - .03, y0 + .01, .013, cor);   // alça
+    const corpo = () => { ctx.beginPath(); ctx.moveTo(x0 + .01, y0); ctx.lineTo(x1, y0); ctx.lineTo(x1 + .006, y1 - .015); ctx.quadraticCurveTo(x1 + .006, y1, x1 - .012, y1); ctx.lineTo(x0 + .006, y1); ctx.quadraticCurveTo(x0 - .008, y1, x0 - .006, y1 - .015); ctx.closePath(); };
+    corpo(); fillStroke(ctx, cor, lw);
+    ctx.save(); corpo(); ctx.clip(); ctx.fillStyle = 'rgba(80,60,30,.12)'; ctx.fillRect(x1 - .03, y0, .05, 1); ctx.restore();
+    if (a.estampa !== 'nenhuma') {                   // o retrato em estêncil: boina com estrela, cabelo e barba
+      ctx.save(); ctx.translate(x0 + (x1 - x0) * .4, y0 + (y1 - y0) * .6); const k = (x1 - x0) * .28; ctx.scale(k, k);   // do lado de fora, onde a mão não cobre
+      ellipse(ctx, .04, .12, .92, 1.0); ctx.fillStyle = INK; ctx.fill();
+      ellipse(ctx, .14, .14, .52, .7, -.1); ctx.fillStyle = cor; ctx.fill();
+      ellipse(ctx, -.06, -.72, .86, .36, -.25); ctx.fillStyle = INK; ctx.fill();
+      star5(ctx, .06, -.74, .15, 0, '#d8231f');
+      line(ctx, -.1, -.04, .06, -.07, .1); line(ctx, .24, -.08, .4, -.05, .1); line(ctx, .2, .02, .14, .22, .07);
+      ellipse(ctx, .14, .58, .44, .24); ctx.fillStyle = INK; ctx.fill(); line(ctx, .02, .5, .27, .5, .05, cor);
+      ctx.restore();
+    }
+  } },
+  gargantilha: { onde: 'frente', cor: '#1d1b1e', desenha: (ctx, p, cor, f, a) => {   // choker de tachas logo abaixo do queixo; "pingente": 'venus' põe um colar fino com o símbolo
+    const y = p.hy + p.hr * p.q + .012, w = .055;
+    if (a.pingente) {
+      ctx.beginPath(); ctx.moveTo(-w * .8 + p.hx, y + .01); ctx.quadraticCurveTo(p.hx, y + .09, p.hx + w * .8, y + .01); ctx.lineWidth = .004; ctx.strokeStyle = '#c9ccd2'; ctx.stroke();
+      venus(ctx, p.hx, y + .062, .011, '#a35be0');
+    }
+    rrect(ctx, p.hx - w, y - .008, w * 2, .026, .01); fillStroke(ctx, cor, p.lw * .6);
+    for (let i = -2; i <= 2; i++) { ctx.beginPath(); ctx.arc(p.hx + i * .022, y + .005, .006, 0, TAU); fillStroke(ctx, '#d9dce2', .003); }
+  } },
+  piercing: { onde: 'frente', cor: '#c9ccd2', desenha: (ctx, p, cor, f) => {   // argola no septo, com a pontinha do nariz
+    const x = p.hx + (f.turn || 0) * .06, y = p.hy + (.085 + (f.mouthDy || 0)) * .6;
+    ctx.beginPath(); ctx.arc(x, y - .016, .014, .25 * Math.PI, .75 * Math.PI); ctx.lineWidth = .008; ctx.strokeStyle = INK; ctx.lineCap = 'round'; ctx.stroke();
+    ctx.beginPath(); ctx.arc(x, y, .011, -.15, Math.PI + .15); ctx.lineWidth = .009; ctx.strokeStyle = INK; ctx.stroke(); ctx.lineWidth = .005; ctx.strokeStyle = cor; ctx.stroke();
+  } },
+  delineado: { onde: 'frente', cor: '#221c22', desenha: (ctx, p, cor, f) => {   // traço de delineador no canto de fora de cada olho
+    if (!['normal', 'half', 'smug', 'wide'].includes(f.eyes) || (f.blink || 0) > .5) return;
+    const r = (f.eyeR || .042) * (f.eyes === 'wide' ? 1.3 : 1), rw = r * (f.eyeW || 1), half = f.eyes === 'half' || f.eyes === 'smug';
+    for (const s of [-1, 1]) {
+      const x = p.hx + s * .072 * (f.eyeDist || 1) + (f.turn || 0) * .06 + s * rw * (half ? 1 : .87), y = p.hy - .005 - r * (half ? .1 : .5);
+      ctx.beginPath(); ctx.moveTo(x - s * .01, y + .002); ctx.lineTo(x + s * .024, y - .017); ctx.lineWidth = .01; ctx.strokeStyle = cor; ctx.lineCap = 'round'; ctx.stroke();
+    }
+  } },
+};
+const ARCO_IRIS = ['#e8302a', '#f68b1f', '#f7d117', '#2fa84f', '#2f6fd6', '#8a3fc4'];
+// texto e logotipo não podem sair espelhados quando o personagem vira de lado (flip -1): desfaz o espelho do contexto
+function semEspelho(ctx) { const m = ctx.getTransform(); if (m.a * m.d - m.b * m.c < 0) ctx.scale(-1, 1); }
+// listras ao longo de um segmento (meia, pulseira): de "de" a "ate" (frações de p0 a p1), uma cor por listra, com contorno
+function faixas(ctx, p0, p1, de, ate, cores, larg, lw) {
+  const P = k => [p0[0] + (p1[0] - p0[0]) * k, p0[1] + (p1[1] - p0[1]) * k], a = P(de), b = P(ate);
+  ctx.lineCap = 'butt';
+  ctx.beginPath(); ctx.moveTo(...a); ctx.lineTo(...b); ctx.lineWidth = larg + lw * 1.2; ctx.strokeStyle = INK; ctx.stroke();
+  const n = cores.length;
+  cores.forEach((c, i) => { ctx.beginPath(); ctx.moveTo(...P(de + (ate - de) * i / n + .004)); ctx.lineTo(...P(de + (ate - de) * (i + 1) / n - .004 * (i === n - 1))); ctx.lineWidth = larg; ctx.strokeStyle = c; ctx.stroke(); });
+  ctx.lineCap = 'round';
+}
+// símbolo feminino (♀): argola e cruz embaixo
+function venus(ctx, x, y, r, cor) {
+  for (const [w, c] of [[r * .9, INK], [r * .45, cor]]) {
+    ctx.beginPath(); ctx.arc(x, y - r * .4, r * .8, 0, TAU); ctx.moveTo(x, y + r * .4); ctx.lineTo(x, y + r * 1.6); ctx.moveTo(x - r * .55, y + r * 1.05); ctx.lineTo(x + r * .55, y + r * 1.05);
+    ctx.lineWidth = w; ctx.strokeStyle = c; ctx.lineCap = 'round'; ctx.stroke();
+  }
+}
+// remendos costurados na saia: cada um desenha centrado em (x, y), com tamanho k
+const REMENDOS = {
+  coracao: (ctx, x, y, k) => {   // coração de arco-íris
+    const forma = () => { ctx.beginPath(); ctx.moveTo(x, y + k * .9); ctx.bezierCurveTo(x - k * 1.4, y + k * .05, x - k * .75, y - k * .95, x, y - k * .35); ctx.bezierCurveTo(x + k * .75, y - k * .95, x + k * 1.4, y + k * .05, x, y + k * .9); ctx.closePath(); };
+    ctx.save(); forma(); ctx.clip(); ARCO_IRIS.forEach((c, i) => { ctx.fillStyle = c; ctx.fillRect(x - k * 1.5, y - k * .8 + i * k * 1.7 / 6, k * 3, k * 1.7 / 6 + .001); }); ctx.restore();
+    forma(); fillStroke(ctx, null, .005);
+  },
+  trans: (ctx, x, y, k) => {     // símbolo transgênero, roxo
+    const s = k * .42, d = s * .7;
+    for (const [w, c] of [[k * .3, INK], [k * .15, '#a35be0']]) {
+      ctx.beginPath(); ctx.arc(x, y, s, 0, TAU);
+      ctx.moveTo(x, y + s); ctx.lineTo(x, y + s * 2.2); ctx.moveTo(x - s * .55, y + s * 1.65); ctx.lineTo(x + s * .55, y + s * 1.65);   // ♀
+      ctx.moveTo(x + d, y - d); ctx.lineTo(x + s * 1.9, y - s * 1.9); ctx.moveTo(x + s * 1.2, y - s * 1.9); ctx.lineTo(x + s * 1.9, y - s * 1.9); ctx.lineTo(x + s * 1.9, y - s * 1.2);   // ♂
+      ctx.moveTo(x - d, y - d); ctx.lineTo(x - s * 1.9, y - s * 1.9); ctx.moveTo(x - s * 1.2, y - s * 1.9); ctx.lineTo(x - s * 1.9, y - s * 1.9); ctx.lineTo(x - s * 1.9, y - s * 1.2);
+      ctx.moveTo(x - s * 1.05, y - s * 1.65); ctx.lineTo(x - s * 1.65, y - s * 1.05);   // traço do terceiro braço
+      ctx.lineWidth = w; ctx.strokeStyle = c; ctx.lineCap = 'round'; ctx.lineJoin = 'round'; ctx.stroke();
+    }
+  },
+  folha: (ctx, x, y, k) => {     // broto de duas folhas
+    line(ctx, x, y + k * .7, x, y - k * .05, k * .14, '#2e7d32');
+    for (const s of [-1, 1]) { ellipse(ctx, x + s * k * .38, y - k * .2, k * .42, k * .22, s * -.6); fillStroke(ctx, '#4caf50', .004); }
+  },
+  punho: (ctx, x, y, k) => {     // punho erguido, branco num círculo preto
+    circle(ctx, x, y, k * .85); fillStroke(ctx, '#1d1b1e', .004, '#f4f2ee');
+    ctx.save(); circle(ctx, x, y, k * .8); ctx.clip(); ctx.fillStyle = '#f4f2ee';
+    ctx.beginPath(); ctx.roundRect(x - k * .32, y - k * .42, k * .64, k * .42, k * .1); ctx.fill();
+    ctx.fillRect(x - k * .22, y - k * .05, k * .44, k);
+    for (let i = 1; i < 4; i++) line(ctx, x - k * .32 + i * k * .16, y - k * .42, x - k * .32 + i * k * .16, y - k * .2, k * .05, '#1d1b1e');
+    ctx.restore();
+  },
 };
 
 function personagem(ctx, quem, o = {}) {
   const f = ELENCO[quem];
   if (!f) throw new Error(`personagem "${quem}" não está no elenco: crie personagens/${quem}.json e cite-o em falas.json (ou em elenco.json)`);
   const rosto = f.rosto || {}, cab = f.cabelo || { estilo: 'careca' };
-  const face = Object.assign({ eyes: rosto.olhos || 'normal', mouth: rosto.boca || 'smile', eyeR: .042 * (rosto.olhosTamanho || 1), eyeW: rosto.olhosLargura || 1, mouthDy: (rosto.bocaAbaixo || 0) * .19, browW: rosto.sobrancelha || 1, browDy: (rosto.sobrancelhaAcima || 0) * .19 }, o.face);
+  const face = Object.assign({ eyes: rosto.olhos || 'normal', mouth: rosto.boca || 'smile', eyeR: .042 * (rosto.olhosTamanho || 1), eyeW: rosto.olhosLargura || 1, eyeDist: rosto.olhosDistancia || 1, mouthDy: (rosto.bocaAbaixo || 0) * .19, browW: rosto.sobrancelha || 1, browDy: (rosto.sobrancelhaAcima || 0) * .19 }, o.face);
   if (o.t != null && o.fala !== false) { const m = bocaFalando(o.t, quem); if (m) face.mouth = m; }
   if (o.t != null && face.blink == null) face.blink = piscada(o.t, quem);
   const estilo = CABELOS[cab.estilo] || CABELOS.careca, corCabelo = cab.cor || '#3b2216', mec = cab.mechas;
@@ -288,11 +455,13 @@ function personagem(ctx, quem, o = {}) {
     iris: rosto.iris, cabeca: f.cabeca, queixo: f.queixo, tronco: f.tronco, pescoco: f.pescoco,
     membros: f.membros === 'pele' ? pele : f.membros,   // "pele": braços e pernas cor de pele com contorno
     face,
+    costas: (c, hx, hy, hr) => camadasImagem(c, f, 'costas', hx, hy, hr),
     atras: (c, hx, hy, hr, lw) => { if (estilo.atras) estilo.atras(c, hx, hy, hr, lw, corCabelo, mec); desenha('atras', { hx, hy, hr, lw }); camadasImagem(c, f, 'atras', hx, hy, hr); },
     cabelo: (c, hx, hy, hr, lw) => { if (estilo.frente) estilo.frente(c, hx, hy, hr, lw, corCabelo, mec); desenha('rosto', { hx, hy, hr, lw }); camadasImagem(c, f, 'rosto', hx, hy, hr); },
-    frente: (c, hx, hy, hr, lw) => { desenha('frente', { hx, hy, hr, lw }); camadasImagem(c, f, 'frente', hx, hy, hr); },
+    frente: (c, hx, hy, hr, lw) => { desenha('frente', { hx, hy, hr, lw, q: f.queixo || 1 }); camadasImagem(c, f, 'frente', hx, hy, hr); },
     roupa: (c, tw, tTop, tBot, lw) => desenha('roupa', { tw, tTop, tBot, lw, pele }),
     manga: (c, pts, side, lw) => desenha('manga', { pts, side, lw, pele }),
+    perna: (c, pts, side, lw) => desenha('perna', { pts, side, lw, pele }),
     pe: (c, x, y, side, lw) => desenha('pe', { x, y, side, lw }),
   }));
 }

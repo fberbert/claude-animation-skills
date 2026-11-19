@@ -27,6 +27,8 @@ function drawStick(ctx, o) {
   ctx.translate(0, bounce);
   const legs = o.legs || { L: [.12, -.05], R: [.12, -.05] };
   const arms = o.arms || { L: [.35, -.15], R: [.35, -.15] };
+  // gancho: cabelo comprido que cai atrás do corpo (desenhado antes de pernas, tronco e braços), na posição e inclinação da cabeça
+  if (!sil && o.costas) { const hy = -.765 - (o.pescoco || 0); ctx.save(); ctx.translate(0, hy); ctx.rotate(o.headTilt || 0); ctx.translate(0, -hy); o.costas(ctx, 0, hy, .19, lw); ctx.restore(); }
   const hipY = -.3, shY = -.535;
   // membros: traço preto (padrão) ou, com o.membros = cor da pele, braços e pernas cor de pele com contorno
   const pm = !sil && o.membros;
@@ -41,6 +43,7 @@ function drawStick(ctx, o) {
     const [a1, a2] = legs[k];
     const p = limbPts(side * .055, hipY, side, a1, a2, .155, .155); legP[k] = p;
     membro(p);
+    if (!sil && o.perna) o.perna(ctx, p, side, lw);   // gancho dos personagens: meias (antes do pé, que fica por cima)
     ellipse(ctx, p[2][0] + side * .022, p[2][1] + .004, .042, .022, 0); if (pm) fillStroke(ctx, pm, .012); else { ctx.fillStyle = ink; ctx.fill(); }
     if (!sil && o.pe) o.pe(ctx, p[2][0] + side * .022, p[2][1] + .004, side, lw);   // gancho dos personagens: sapato, tênis
   }
@@ -141,7 +144,7 @@ function drawCaptainHat(ctx, hx, hy, hr, lw) {
 }
 function drawFace(ctx, hx, hy, hr, f, o, sil) {
   const turn = f.turn || 0;
-  const ex = .072, ey = hy - .005, er = f.eyeR || .042;
+  const ex = .072 * (f.eyeDist || 1), ey = hy - .005, er = f.eyeR || .042;   // eyeDist > 1: olhos mais afastados
   const look = f.look || [0, 0];
   const patch = o.patch; // {pos:-1..1, lift:0..1}
   const kind = f.eyes || 'normal';

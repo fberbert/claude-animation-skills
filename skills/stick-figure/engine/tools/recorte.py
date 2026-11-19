@@ -7,13 +7,20 @@ da folha de poses. Rode com o Python do kit:
     --centro   ponto entre os dois olhos, em pixels do desenho (é o centro da cabeça do boneco)
     --raio     meia largura da cabeça na altura dos olhos, até o meio do contorno preto
     --cabelo   curto (padrão: topo e costeletas, por cima de tudo) ou longo (cai atrás da cabeça até os ombros)
-    --amostra  ponto no meio do cabelo, quando ele é colorido (ruivo, loiro, tingido); pode repetir
+    --amostra  ponto no meio do cabelo, quando ele é colorido (ruivo, loiro, tingido); pode repetir. "X,Y,ATE" só pega
+               a cor até ATE raios abaixo dos olhos (um lenço vermelho na cabeça sem levar a camiseta vermelha)
     --barba    recorta também a barba (das costeletas ao queixo)
     --boca     altura da boca no desenho (opcional): imprime o "bocaAbaixo" para a ficha
-Escreve quadrados centrados na cabeça, com a cabeça ocupando 1/4 da largura (o personagem.js desenha cada um de -2 a +2
-raios), e imprime as linhas de "imagens" para a ficha:
+    --lado     metade do quadrado recortado, em raios (padrão 2): aumente para cabelo volumoso ou laço alto que passam disso
+    --largura  até onde o cabelo longo vai para os lados, em raios (padrão 1,35); --ate: até onde desce (padrão 1,66)
+    --orelhas  cabelo longo: leva junto a pele fora do rosto (orelhas, com brincos e piercings), na camada de trás
+    --costas   cabelo longo e volumoso: a parte de trás vai para a camada costas, desenhada atrás do corpo inteiro (os braços
+               erguidos passam na frente do cabelo, e o tronco cobre o pescoço e a gola do desenho)
+Escreve quadrados centrados na cabeça (o personagem.js desenha cada um de -lado a +lado raios) e imprime as linhas de
+"imagens" para a ficha:
   <saida>-cabelo.png        camada frente (topo e franja)
   <saida>-cabelo-atras.png  camada atras, só no cabelo longo (as mechas dos lados e de trás)
+  <saida>-cabelo-costas.png camada costas, com --costas, no lugar do -cabelo-atras.png
   <saida>-barba.png         camada rosto (por baixo da boca do boneco, que continua mexendo)
 O cabelo é separado pela cor: castanho, cinza, branco e preto sempre entram; com --amostra, também a cor do ponto.
 A pele (laranja-clara saturada) fica de fora. No cabelo longo, só conta o que está dentro do contorno preto do
@@ -36,6 +43,8 @@ def main():
     ap.add_argument('--cabelo', choices=['curto', 'longo'], default='curto')
     ap.add_argument('--amostra', action='append', default=[]); ap.add_argument('--barba', action='store_true')
     ap.add_argument('--queixo', type=float, default=1.0)   # rosto de ovo: distância do queixo ao centro, em raios (igual ao "queixo" da ficha)
+    ap.add_argument('--lado', type=float, default=2.0); ap.add_argument('--largura', type=float, default=1.35)
+    ap.add_argument('--ate', type=float, default=1.66); ap.add_argument('--orelhas', action='store_true'); ap.add_argument('--costas', action='store_true')
     a = ap.parse_args()
     cx, cy = map(float, a.centro.split(',')); R = a.raio
     rgb = np.asarray(Image.open(a.imagem).convert('RGB')).astype(np.float32) / 255
@@ -44,12 +53,12 @@ def main():
     H = hue(rgb)
     pele = (H > 12) & (H < 40) & (S > .55) & (L > .58)
     fio = ((S < .38) | (L < .2)) & ~pele          # castanho, cinza, branco e preto; fora: pele, céu e cores do cenário
-    for p in a.amostra:                            # cabelo colorido: tudo perto da cor do ponto de amostra
-        x, y = map(int, p.split(','))
-        fio |= (np.linalg.norm(rgb - rgb[y - 3:y + 4, x - 3:x + 4].reshape(-1, 3).mean(0), axis=2) < .28) & ~pele
     h, w = L.shape
     ys, xs = np.mgrid[0:h, 0:w]
     dx, dy = (xs - cx) / R, (ys - cy) / R           # coordenadas da cabeça: raio 1, olhos em y = 0
+    for p in a.amostra:                            # cabelo colorido: tudo perto da cor do ponto de amostra
+        x, y, *ate = map(float, p.split(',')); x, y = int(x), int(y)
+        fio |= (np.linalg.norm(rgb - rgb[y - 3:y + 4, x - 3:x + 4].reshape(-1, 3).mean(0), axis=2) < .28) & ~pele & (dy < (ate[0] if ate else np.inf))
     dist = np.hypot(dx, dy)
     contorno = (dist > .9) & (dist < 1.06) & (dy < .85) & (L < .3)   # o contorno da cabeça no desenho: o do boneco fica no lugar
     camadas = []
@@ -71,7 +80,14 @@ def main():
         # frente: o cabelo que cai sobre a cabeça do boneco (cobre também o contorno dele); atrás: o que fica fora dela
         camadas.append(('cabelo', 'frente', cabelo & (ovo < 1.06) & ~rosto))
         roupa = (dy > 1.0) & (S < .38) & (L > .45)   # abaixo do queixo, branco e cinza claro são a camisa do desenho
-        camadas.append(('cabelo-atras', 'atras', cabelo & (ovo >= .95) & ~borda_rosto & ~tronco & ~roupa & (np.abs(dx) < 1.35) & (dy < 1.66)))
+        atras = cabelo & (ovo >= .95) & ~borda_rosto & ~roupa
+        if a.orelhas:   # a pele fora do rosto, ao lado da cabeça: orelhas (os brincos e piercings já entram pela cor)
+            atras |= pele & ~fundo & ~rosto & (ovo >= .95) & (dy < .95)
+        atras &= (np.abs(dx) < a.largura) & (dy < a.ate)
+        if a.costas:
+            camadas.append(('cabelo-costas', 'costas', atras))
+        else:
+            camadas.append(('cabelo-atras', 'atras', atras & ~tronco))
     if a.barba:
         # a boca do desenho: traço preto com pele logo acima e logo abaixo (o boneco desenha a boca dele, que mexe)
         perto = lambda m, d: np.logical_or.reduce([np.roll(m, k * d, 0) for k in range(1, 15)])
@@ -88,11 +104,11 @@ def main():
                 m = np.isin(rot, 1 + np.nonzero(areas >= .006 * R * R)[0])
         alfa = Image.fromarray((m * 255).astype(np.uint8)).filter(ImageFilter.GaussianBlur(.7))
         cor = Image.fromarray((rgb * 255).astype(np.uint8)); cor.putalpha(alfa)
-        lado = int(round(4 * R)); x0, y0 = int(round(cx - 2 * R)), int(round(cy - 2 * R))   # de -2 a +2 raios
+        lado = int(round(2 * a.lado * R)); x0, y0 = int(round(cx - a.lado * R)), int(round(cy - a.lado * R))   # de -lado a +lado raios
         arq = f'{a.saida}-{nome}.png'
         cor.crop((x0, y0, x0 + lado, y0 + lado)).save(arq, optimize=True)
         print(arq, int(m.sum()), 'pixels')
-        imagens.append({'arquivo': arq.replace('\\', '/').split('/')[-1], 'camada': camada})
+        imagens.append({'arquivo': arq.replace('\\', '/').split('/')[-1], 'camada': camada, **({'lado': a.lado} if a.lado != 2 else {})})
     print('"imagens":', json.dumps(imagens, ensure_ascii=False))
     if a.boca is not None:
         print(f'"bocaAbaixo": {round((a.boca - cy) / R - .447, 3)}   (a boca do boneco fica a 0,447 raio abaixo dos olhos)')
