@@ -244,8 +244,8 @@ const ACESSORIOS = {
   } },
   camiseta: { cor: '#2b2a2e',   // camiseta de manga curta: gola com o pescoço aparecendo e mangas que acompanham os braços
     // combina com "tronco": {"largura": 0.29, "reto": true} na ficha (tronco de camiseta, mais largo e de cantos retos)
-    roupa: (ctx, p, cor) => {
-      ctx.beginPath(); ctx.moveTo(-.05, -.6); ctx.quadraticCurveTo(0, -.53, .05, -.6); ctx.closePath(); fillStroke(ctx, p.pele, p.lw * .8);   // pescoço na gola
+    roupa: (ctx, p, cor, f, a) => {   // "pescoco": false não desenha o pescoço: a camiseta vai até o queixo
+      if (a.pescoco !== false) { ctx.beginPath(); ctx.moveTo(-.05, -.6); ctx.quadraticCurveTo(0, -.53, .05, -.6); ctx.closePath(); fillStroke(ctx, p.pele, p.lw * .8); }   // pescoço na gola
     },
     manga: (ctx, p, cor) => {
       const [o, c] = p.pts, d = Math.hypot(c[0] - o[0], c[1] - o[1]), ux = (c[0] - o[0]) / d, uy = (c[1] - o[1]) / d, nx = -uy, ny = ux;
@@ -255,7 +255,7 @@ const ACESSORIOS = {
       ctx.lineJoin = 'round'; fillStroke(ctx, cor, p.lw * .8);
     } },
   bermuda: { onde: 'roupa', cor: '#f4f2ec', desenha: (ctx, p, cor, f, a) => {   // bermuda até o meio da coxa, com cós, bolsos e barra
-    const { tw, tTop, tBot, lw } = p, cint = tTop + (a.cintura ?? .21), barra = tBot + (a.barra ?? .085), costura = escurecer(cor, .3);   // "cintura" e "barra" ajustam a altura
+    const { tTop, tBot, lw } = p, tw = p.tw * (a.largura ?? 1), cint = tTop + (a.cintura ?? .21), barra = tBot + (a.barra ?? .085), costura = escurecer(cor, .3);   // "cintura", "barra" e "largura" ajustam
     const forma = () => { ctx.beginPath(); ctx.moveTo(-tw / 2, cint); ctx.lineTo(tw / 2, cint); ctx.lineTo(tw / 2 + .006, barra); ctx.lineTo(.008, barra); ctx.lineTo(0, tBot + .01); ctx.lineTo(-.008, barra); ctx.lineTo(-tw / 2 - .006, barra); ctx.closePath(); };
     forma(); fillStroke(ctx, cor, lw);
     if (a.sombra !== false) { ctx.save(); forma(); ctx.clip(); ctx.fillStyle = escurecer(cor, .04); ctx.fillRect(tw * .3, cint, tw, 1); ctx.restore(); }   // lado na sombra ("sombra": false tira)

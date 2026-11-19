@@ -47,10 +47,12 @@ function drawStick(ctx, o) {
     ellipse(ctx, p[2][0] + side * .022, p[2][1] + .004, .042, .022, 0); if (pm) fillStroke(ctx, pm, .012); else { ctx.fillStyle = ink; ctx.fill(); }
     if (!sil && o.pe) o.pe(ctx, p[2][0] + side * .022, p[2][1] + .004, side, lw);   // gancho dos personagens: sapato, tênis
   }
-  // torso (bean); o.tronco = { largura, reto } deixa mais largo e de cantos retos (camiseta)
+  // torso (bean); o.tronco = { largura, reto, fim } deixa mais largo e de cantos retos (camiseta); "fim" (a partir do topo)
+  // encurta a camiseta para a bermuda começar logo abaixo da barra dela, sem ficar "dentro" do tronco
   const tw = (o.tronco && o.tronco.largura) || .25, tTop = -.62, tBot = -.27;
+  const tFim = o.tronco && o.tronco.fim ? tTop + o.tronco.fim : tBot;
   const cantos = o.tronco && o.tronco.reto ? [.065, .065, .03, .03] : [.1, .1, .12, .12];
-  const torso = () => { ctx.beginPath(); ctx.roundRect(-tw / 2, tTop, tw, tBot - tTop, cantos); };
+  const torso = () => { ctx.beginPath(); ctx.roundRect(-tw / 2, tTop, tw, tFim - tTop, cantos); };
   const cols = o.cols || PAL.red;
   if (sil) { torso(); ctx.fillStyle = sil; ctx.fill(); }
   else {
@@ -62,7 +64,7 @@ function drawStick(ctx, o) {
     }
     if (o.vest) { ctx.save(); torso(); ctx.clip(); ctx.fillStyle = o.vest; ctx.fillRect(-tw / 2 - .01, tTop, .07, 1); ctx.fillRect(tw / 2 - .06, tTop, .07, 1); ctx.restore(); }
     if (o.belt !== false) { ctx.save(); torso(); ctx.clip(); ctx.fillStyle = '#4a2c1c'; ctx.fillRect(-tw, -.34, tw * 2, .035); ctx.fillStyle = '#e8c04a'; ctx.fillRect(-.022, -.343, .044, .041); ctx.restore(); }
-    shadeShape(ctx, torso, 1, o.tronco && o.tronco.reto ? .07 : .18, .38, [-tw / 2, tTop, tw, tBot - tTop]);
+    shadeShape(ctx, torso, 1, o.tronco && o.tronco.reto ? .07 : .18, .38, [-tw / 2, tTop, tw, tFim - tTop]);
     torso(); fillStroke(ctx, null, lw);
     if (o.roupa) o.roupa(ctx, tw, tTop, tBot, lw);   // gancho dos personagens: gravata, avental, crachá (personagem.js)
   }
