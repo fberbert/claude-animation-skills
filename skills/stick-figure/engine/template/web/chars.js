@@ -164,21 +164,21 @@ function drawFace(ctx, hx, hy, hr, f, o, sil) {
     else circle(ctx, px, py, pr);
     ctx.fillStyle = INK; ctx.fill();
     if (pr > .012) { circle(ctx, px - pr * .35, py - pr * .35, pr * .3); ctx.fillStyle = '#fff'; ctx.fill(); }
-    if (k === 'smug' || k === 'half') { ctx.fillStyle = sil || o.pele || HEAD; ctx.fillRect(x - rw - .01, y - r - .01, rw * 2 + .02, r * (k === 'half' ? .9 : 1.05)); line(ctx, x - rw, y - r * (k === 'half' ? .1 : -.05), x + rw, y - r * (k === 'half' ? .1 : -.05), .014); }
+    if (k === 'smug' || k === 'half') { ctx.fillStyle = sil || o.pele || HEAD; ctx.fillRect(x - rw - .01, y - r - .01, rw * 2 + .02, r * (k === 'half' ? .9 : 1.05) + .01); line(ctx, x - rw, y - r * (k === 'half' ? .1 : -.05), x + rw, y - r * (k === 'half' ? .1 : -.05), .014); }
     ctx.restore();
   }
   if (glow) return;
   // brows
   if (f.brow !== false) {
-    const by = ey - .07 - (f.browUp || 0) * .03; const ba = f.browAng || 0;
+    const by = ey - .07 - (f.browUp || 0) * .03 - (f.browDy || 0); const ba = f.browAng || 0, bw = f.browW || 1;   // browW: sobrancelha maior e mais grossa
     for (const side of [-1, 1]) {
       const x = hx + side * ex + turn * .06; const up = (f.browOne && side === f.browOne) ? .03 : 0;
       ctx.save(); ctx.translate(x, by - up); ctx.rotate(side * ba);
-      ctx.beginPath(); ctx.moveTo(-.03, .006); ctx.quadraticCurveTo(0, -.01, .03, .006); ctx.lineWidth = .014; ctx.strokeStyle = INK; ctx.lineCap = 'round'; ctx.stroke(); ctx.restore();
+      ctx.beginPath(); ctx.moveTo(-.03 * bw, .006); ctx.quadraticCurveTo(0, -.01 - .02 * (bw - 1), .03 * bw, .006); ctx.lineWidth = .014 * (1 + (bw - 1) * .4); ctx.strokeStyle = INK; ctx.lineCap = 'round'; ctx.stroke(); ctx.restore();
     }
   }
   // mouth
-  const mx = hx + turn * .06, my = hy + .085; const m = f.mouth || 'smile';
+  const mx = hx + turn * .06, my = hy + .085 + (f.mouthDy || 0); const m = f.mouth || 'smile';
   ctx.lineWidth = .014; ctx.strokeStyle = INK; ctx.lineCap = 'round';
   if (m === 'smile') { ctx.beginPath(); ctx.arc(mx, my - .04, .045, .5, Math.PI - .5); ctx.stroke(); }
   else if (m === 'flat') { line(ctx, mx - .03, my, mx + .03, my, .014); }

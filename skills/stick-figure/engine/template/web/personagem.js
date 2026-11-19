@@ -6,6 +6,14 @@
 //   fala: false desliga a boca automática (personagem de boca fechada mesmo durante a própria fala)
 const ELENCO = window.ELENCO || {};
 const FALAS = window.FALAS || [];
+// camadas recortadas de um desenho (tools/recorte.py): cada PNG cobre de -2 a +2 raios da cabeça, centrado nos olhos.
+// O falas.py (e o ficha.js) põem a imagem dentro da ficha, em "dados"; o render espera todas carregarem.
+window.ELENCO_PRONTO = Promise.all(Object.values(ELENCO).flatMap(f => (f.imagens || []).map(im => {
+  im.img = new Image(); im.img.src = im.dados; return im.img.decode();
+})));
+function camadasImagem(ctx, f, camada, hx, hy, hr) {
+  for (const im of f.imagens || []) if ((im.camada || 'frente') === camada && im.img) ctx.drawImage(im.img, hx - 2 * hr, hy - 2 * hr, 4 * hr, 4 * hr);
+}
 
 function escurecer(hex, k = .12) {
   const n = parseInt(hex.slice(1), 16), f = c => Math.round(c * (1 - k));
@@ -143,8 +151,8 @@ const ACESSORIOS = {
     forma(); ctx.clip(); fios(ctx, a.mechas, hx - hr * 1.05, hy + hr * .3, hr * 2.1, hr * .85, 110, 11, 1.4, .025);
     ctx.restore();
   } },
-  pinta: { onde: 'frente', cor: '#6b4a3a', desenha: (ctx, p, cor, f) => {
-    circle(ctx, p.hx - p.hr * .38 + (f.turn || 0) * .06, p.hy - p.hr * .6, .011); ctx.fillStyle = cor; ctx.fill();
+  pinta: { onde: 'frente', cor: '#6b4a3a', desenha: (ctx, p, cor, f, a) => {   // "x" e "y" opcionais, em raios da cabeça a partir do centro
+    ctx.beginPath(); ctx.arc(p.hx + p.hr * (a.x ?? -.38) + (f.turn || 0) * .06, p.hy + p.hr * (a.y ?? -.6), .011 * (a.tamanho || 1), 0, TAU); ctx.fillStyle = cor; ctx.fill();   // arc direto: circle() não desenha raio menor que .01
   } },
   oculos: { onde: 'frente', cor: '#221c22', desenha: (ctx, p, cor, f) => {
     const dx = (f.turn || 0) * .06, ey = p.hy - .005;
@@ -197,7 +205,7 @@ function personagem(ctx, quem, o = {}) {
   const f = ELENCO[quem];
   if (!f) throw new Error(`personagem "${quem}" não está no elenco: crie personagens/${quem}.json e cite-o em falas.json (ou em elenco.json)`);
   const rosto = f.rosto || {}, cab = f.cabelo || { estilo: 'careca' };
-  const face = Object.assign({ eyes: rosto.olhos || 'normal', mouth: rosto.boca || 'smile', eyeR: .042 * (rosto.olhosTamanho || 1), eyeW: rosto.olhosLargura || 1 }, o.face);
+  const face = Object.assign({ eyes: rosto.olhos || 'normal', mouth: rosto.boca || 'smile', eyeR: .042 * (rosto.olhosTamanho || 1), eyeW: rosto.olhosLargura || 1, mouthDy: (rosto.bocaAbaixo || 0) * .19, browW: rosto.sobrancelha || 1, browDy: (rosto.sobrancelhaAcima || 0) * .19 }, o.face);
   if (o.t != null && o.fala !== false) { const m = bocaFalando(o.t, quem); if (m) face.mouth = m; }
   if (o.t != null && face.blink == null) face.blink = piscada(o.t, quem);
   const estilo = CABELOS[cab.estilo] || CABELOS.careca, corCabelo = cab.cor || '#3b2216', mec = cab.mechas;
@@ -211,9 +219,9 @@ function personagem(ctx, quem, o = {}) {
     pele, peleSombra: f.pele ? escurecer(f.pele) : HEAD_SH, blush: rosto.bochechas,
     iris: rosto.iris, cabeca: f.cabeca,
     face,
-    atras: (c, hx, hy, hr, lw) => { if (estilo.atras) estilo.atras(c, hx, hy, hr, lw, corCabelo, mec); desenha('atras', { hx, hy, hr, lw }); },
-    cabelo: (c, hx, hy, hr, lw) => { if (estilo.frente) estilo.frente(c, hx, hy, hr, lw, corCabelo, mec); desenha('rosto', { hx, hy, hr, lw }); },
-    frente: (c, hx, hy, hr, lw) => desenha('frente', { hx, hy, hr, lw }),
+    atras: (c, hx, hy, hr, lw) => { if (estilo.atras) estilo.atras(c, hx, hy, hr, lw, corCabelo, mec); desenha('atras', { hx, hy, hr, lw }); camadasImagem(c, f, 'atras', hx, hy, hr); },
+    cabelo: (c, hx, hy, hr, lw) => { if (estilo.frente) estilo.frente(c, hx, hy, hr, lw, corCabelo, mec); desenha('rosto', { hx, hy, hr, lw }); camadasImagem(c, f, 'rosto', hx, hy, hr); },
+    frente: (c, hx, hy, hr, lw) => { desenha('frente', { hx, hy, hr, lw }); camadasImagem(c, f, 'frente', hx, hy, hr); },
     roupa: (c, tw, tTop, tBot, lw) => desenha('roupa', { tw, tTop, tBot, lw }),
   }));
 }

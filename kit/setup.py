@@ -77,7 +77,7 @@ def main():
             say('making kit/.venv')
             subprocess.run([sys.executable, '-m', 'venv', str(venv)], check=True)
         subprocess.run([str(py), '-m', 'pip', 'install', '-q', '--upgrade', 'pip'], check=True)
-        subprocess.run([str(py), '-m', 'pip', 'install', '-q', 'numpy', 'scipy', 'soundfile', 'kokoro-onnx', 'sherpa-onnx'],
+        subprocess.run([str(py), '-m', 'pip', 'install', '-q', 'numpy', 'scipy', 'soundfile', 'kokoro-onnx', 'sherpa-onnx', 'pillow'],
                        check=True)
         models = KIT / 'models'
         models.mkdir(exist_ok=True)

@@ -40,7 +40,10 @@ def ficha(pid):
     for pasta in pastas_de_personagens():
         f = os.path.join(pasta, f'{pid}.json')
         if os.path.exists(f):
-            return json.load(open(f, encoding='utf-8'))
+            dados = json.load(open(f, encoding='utf-8'))
+            for im in dados.get('imagens', []):   # camadas recortadas do desenho: vão dentro do elenco.js, como data URI
+                im['dados'] = 'data:image/png;base64,' + base64.b64encode(open(os.path.join(pasta, im['arquivo']), 'rb').read()).decode()
+            return dados
     sys.exit(f'falta a ficha de "{pid}": crie personagens/{pid}.json na pasta do projeto ou do vídeo')
 
 

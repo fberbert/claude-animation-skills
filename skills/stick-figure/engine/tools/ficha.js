@@ -7,6 +7,7 @@ const fs = require('fs'), path = require('path'), url = require('url');
   const arq = process.argv[2];
   if (!arq) { console.log('uso: node ficha.js personagens/<id>.json [saida.png]'); process.exit(1); }
   const ficha = JSON.parse(fs.readFileSync(arq, 'utf8'));
+  for (const im of ficha.imagens || []) im.dados = 'data:image/png;base64,' + fs.readFileSync(path.join(path.dirname(arq), im.arquivo)).toString('base64');
   const id = path.basename(arq, '.json');
   const saida = process.argv[3] || arq.replace(/\.json$/, '.png');
   const browser = await chromium.launch({ ...(process.env.CHROME ? { executablePath: process.env.CHROME } : {}), args: ['--allow-file-access-from-files'] });
@@ -14,7 +15,7 @@ const fs = require('fs'), path = require('path'), url = require('url');
   page.on('pageerror', e => { console.log('[erro]', e.message); process.exitCode = 1; });
   await page.goto(url.pathToFileURL(path.join(__dirname, 'ficha.html')).href);
   await page.evaluate(() => document.fonts.load('700 40px Poppins'));
-  await page.evaluate(([f, id]) => window.desenharFicha(f, id), [ficha, id]);
+  await page.evaluate(async ([f, id]) => { await window.desenharFicha(f, id); }, [ficha, id]);
   await (await page.$('#c')).screenshot({ path: saida });
   await browser.close();
   console.log('ficha:', saida);

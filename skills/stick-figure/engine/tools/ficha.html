@@ -6,8 +6,9 @@ body{margin:0;background:#fff}</style></head><body>
 <script src="../template/web/lib.js"></script><script src="../template/web/chars.js"></script><script src="../template/web/personagem.js"></script>
 <script>
 // ficha do personagem: 5 poses lado a lado, para conferir o visual antes de usar num vídeo (tools/ficha.js tira a foto)
-window.desenharFicha = (f, id) => {
+window.desenharFicha = async (f, id) => {
   ELENCO[id] = f;
+  for (const im of f.imagens || []) { im.img = new Image(); im.img.src = im.dados; await im.img.decode(); }
   const ctx = document.getElementById('c').getContext('2d');
   ctx.fillStyle = '#fbf7ef'; ctx.fillRect(0, 0, 1600, 900);
   ctx.fillStyle = '#efe7d8'; ctx.fillRect(0, 700, 1600, 200);
