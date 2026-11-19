@@ -53,6 +53,7 @@ function drawStick(ctx, o) {
     if (o.belt !== false) { ctx.save(); torso(); ctx.clip(); ctx.fillStyle = '#4a2c1c'; ctx.fillRect(-tw, -.34, tw * 2, .035); ctx.fillStyle = '#e8c04a'; ctx.fillRect(-.022, -.343, .044, .041); ctx.restore(); }
     shadeShape(ctx, torso, 1, .18, .38, [-tw / 2, tTop, tw, tBot - tTop]);
     torso(); fillStroke(ctx, null, lw);
+    if (o.roupa) o.roupa(ctx, tw, tTop, tBot, lw);   // gancho dos personagens: gravata, avental, crachá (personagem.js)
   }
   // arms
   const handP = {};
@@ -71,11 +72,12 @@ function drawStick(ctx, o) {
   // head
   const hr = .19, hx = 0, hy = -.765;
   ctx.save(); ctx.translate(hx, hy); ctx.rotate(o.headTilt || 0); ctx.translate(-hx, -hy);
+  if (!sil && o.atras) o.atras(ctx, hx, hy, hr, lw);   // gancho: cabelo atrás da cabeça (rabo de cavalo, cabelo longo, coque)
   if (sil) { circle(ctx, hx, hy, hr); ctx.fillStyle = sil; ctx.fill(); }
   else {
-    circle(ctx, hx, hy, hr); ctx.fillStyle = HEAD; ctx.fill();
+    circle(ctx, hx, hy, hr); ctx.fillStyle = o.pele || HEAD; ctx.fill();
     ctx.save(); circle(ctx, hx, hy, hr); ctx.clip(); circle(ctx, hx - .05, hy - .045, hr * 1.02); ctx.fillStyle = 'rgba(0,0,0,0)';
-    ctx.beginPath(); ctx.arc(hx, hy, hr + .01, 0, TAU); ctx.arc(hx - .045, hy - .04, hr * 1.0, 0, TAU, true); ctx.fillStyle = HEAD_SH; ctx.fill(); ctx.restore();
+    ctx.beginPath(); ctx.arc(hx, hy, hr + .01, 0, TAU); ctx.arc(hx - .045, hy - .04, hr * 1.0, 0, TAU, true); ctx.fillStyle = o.peleSombra || HEAD_SH; ctx.fill(); ctx.restore();
     if (o.blush) { ellipse(ctx, hx - .1, hy + .06, .035, .02); ellipse(ctx, hx + .1, hy + .06, .035, .02); ctx.fillStyle = 'rgba(240,120,120,.35)'; ctx.fill(); }
   }
   // hat
@@ -85,9 +87,11 @@ function drawStick(ctx, o) {
     else if (hat === 'sailor') drawSailorHat(ctx, hx, hy, hr, lw);
     else if (hat === 'captain') drawCaptainHat(ctx, hx, hy, hr, lw);
   }
+  if (!sil && o.cabelo) o.cabelo(ctx, hx, hy, hr, lw);   // gancho: franja e topo do cabelo, por baixo do contorno e do rosto
   if (!sil) { circle(ctx, hx, hy, hr); fillStroke(ctx, null, lw); }
   // face
   drawFace(ctx, hx, hy, hr, o.face || {}, o, sil);
+  if (!sil && o.frente) o.frente(ctx, hx, hy, hr, lw);   // gancho: boné, óculos, bigode, barba (desenhados por cima do rosto)
   ctx.restore();
   ctx.restore();
 }
@@ -156,7 +160,7 @@ function drawFace(ctx, hx, hy, hr, f, o, sil) {
     const px = x + look[0] * r * .45, py = y + look[1] * r * .45;
     circle(ctx, px, py, pr); ctx.fillStyle = INK; ctx.fill();
     if (pr > .012) { circle(ctx, px - pr * .35, py - pr * .35, pr * .3); ctx.fillStyle = '#fff'; ctx.fill(); }
-    if (k === 'smug' || k === 'half') { ctx.fillStyle = sil || HEAD; ctx.fillRect(x - r - .01, y - r - .01, r * 2 + .02, r * (k === 'half' ? .9 : 1.05)); line(ctx, x - r, y - r * (k === 'half' ? .1 : -.05), x + r, y - r * (k === 'half' ? .1 : -.05), .014); }
+    if (k === 'smug' || k === 'half') { ctx.fillStyle = sil || o.pele || HEAD; ctx.fillRect(x - r - .01, y - r - .01, r * 2 + .02, r * (k === 'half' ? .9 : 1.05)); line(ctx, x - r, y - r * (k === 'half' ? .1 : -.05), x + r, y - r * (k === 'half' ? .1 : -.05), .014); }
     ctx.restore();
   }
   if (glow) return;

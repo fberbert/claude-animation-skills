@@ -1,5 +1,5 @@
 // run from a reel folder: node <engine>/tools/render.js stills 1.5,3.2 | segments 0,4,8 | video out.mp4
-// (Playwright comes from kit/node_modules: make.sh sets NODE_PATH, or set it yourself)
+// (Playwright comes from kit/node_modules: make.py sets NODE_PATH, or set it yourself)
 const { chromium } = require('playwright');
 const { spawn } = require('child_process');
 const fs = require('fs');
@@ -9,7 +9,7 @@ const fs = require('fs');
   const page = await browser.newPage({ viewport: { width: 1080, height: 1920 } });
   page.on('console', m => console.log('[page]', m.text()));
   page.on('pageerror', e => console.log('[err]', e.message));
-  await page.goto('file://' + process.cwd() + '/web/index.html');
+  await page.goto(require('url').pathToFileURL(require('path').join(process.cwd(), 'web', 'index.html')).href);   // file:///C:/... on Windows too
   await page.evaluate(async () => { await document.fonts.load('700 40px Poppins'); await document.fonts.load('700 40px Lora'); await document.fonts.load('600 40px Lora'); });
   const total = await page.evaluate(() => window.TOTAL_FRAMES);
   if (mode === 'stills') {

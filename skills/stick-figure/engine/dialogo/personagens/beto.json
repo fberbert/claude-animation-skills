@@ -1,0 +1,12 @@
+{
+  "nome": "Beto",
+  "jeito": "desconfiado, pé no chão, cruza os braços antes de se convencer",
+  "voz": {"kokoro": "pm_alex", "velocidade": 1.0},
+  "pele": "#f6f2ea",
+  "camisa": "#2f63c9",
+  "listras": "#f6f1e8",
+  "cabelo": {"estilo": "curto", "cor": "#2a1d17"},
+  "acessorios": ["oculos"],
+  "rosto": {"olhos": "normal", "boca": "flat"},
+  "altura": 1.0
+}

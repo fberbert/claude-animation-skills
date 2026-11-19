@@ -1,0 +1,11 @@
+{
+  "nome": "Duda",
+  "jeito": "animada, fala com as mãos, sempre tem a solução",
+  "voz": {"kokoro": "pf_dora", "velocidade": 1.0},
+  "pele": "#f6f2ea",
+  "camisa": "#7a4bc4",
+  "cabelo": {"estilo": "rabo", "cor": "#3b2216"},
+  "acessorios": [{"tipo": "brinco", "cor": "#e8c04a"}],
+  "rosto": {"olhos": "normal", "boca": "smile", "bochechas": true},
+  "altura": 0.96
+}

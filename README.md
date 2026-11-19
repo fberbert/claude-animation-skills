@@ -9,6 +9,8 @@ Skills for Claude Code that make animations for reels, with no footage needed. Y
 > - **Marcação de palavras em português:** Parakeet v3 (25 idiomas) no lugar do v2, que só entendia inglês, e comparação de palavras que respeita acentos.
 > - **Voz grátis em português:** o Kokoro usa o idioma da voz (`pf_dora`, `pm_alex`, `pm_santa` falam português do Brasil).
 > - **Linux com placa NVIDIA:** a instalação do HyperFrames não trava mais tentando baixar o CUDA.
+> - **Personagens reutilizáveis no `/stick-figure`:** cada personagem é uma ficha (`personagens/<id>.json`: cabelo, pele, roupa, acessórios, jeito e voz), conferida numa folha de poses (`tools/ficha.js`) e guardada em `~/personagens/` para os próximos vídeos. Diálogos (`falas.json`) saem com a voz de cada personagem (Kokoro, Gemini, ElevenLabs ou gravação própria) e a boca mexe nas palavras de quem fala. Exemplo pronto em `engine/dialogo`.
+> - **`/stick-figure` sem bash:** `make.py` e `novo.py` no lugar do `make.sh`, para rodar igual no Windows.
 > - Funciona também com o [omp](https://omp.sh), que lê as skills de `~/.claude/skills`.
 
 ![The six skills, one frame each](docs/skills.jpg)
@@ -40,7 +42,7 @@ See them moving: **[novitckii.com/resources/animation-styles](https://novitckii.
 
 ## Install
 
-You need macOS, Linux or Windows with **ffmpeg**, **Node.js 20+** and **Python 3.9+**. Windows support in this fork is new: the quick skills build with Python and `npx` only, while the two engines' `make.sh` still need bash.
+You need macOS, Linux or Windows with **ffmpeg**, **Node.js 20+** and **Python 3.9+**. Windows support in this fork is new: the quick skills and `/stick-figure` build with Python and Node only, while `/zach-d-films`'s `make.sh` still needs bash.
 
 ```bash
 brew install ffmpeg node        # if you don't have them (Windows: winget install Gyan.FFmpeg OpenJS.NodeJS.LTS)
@@ -92,7 +94,7 @@ Open Claude Code anywhere and ask:
 skills/<name>/SKILL.md          what Claude follows: steps, the spec, taste rules
 skills/<name>/build.py          spec.json -> template.html -> HyperFrames -> mp4   (all the quick skills)
 skills/<name>/template.html     the animation (GSAP, or three.js for the 3D ones)
-skills/stick-figure/engine/     canvas engine, voice + timing tools, make.sh, and the pirate reel as the template
+skills/stick-figure/engine/     canvas engine, voice + timing tools, make.py, the pirate reel as the template and a two-character dialogue
 skills/zach-d-films/engine/     three.js engine (people, props, effects, renderer) and the armour short as the example
 kit/anim.py                     shared: fill a template, render, snapshots, contact sheet
 kit/words.py                    word timings for a voiceover (Parakeet v3, on your computer)
