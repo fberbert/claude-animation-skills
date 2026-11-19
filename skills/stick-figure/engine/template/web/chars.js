@@ -36,6 +36,7 @@ function drawStick(ctx, o) {
     ctx.beginPath(); ctx.moveTo(...p[0]); ctx.lineTo(...p[1]); ctx.lineTo(...p[2]);
     ctx.lineWidth = limbW; ctx.strokeStyle = ink; ctx.lineCap = 'round'; ctx.lineJoin = 'round'; ctx.stroke();
     ellipse(ctx, p[2][0] + side * .022, p[2][1] + .004, .042, .022, 0); ctx.fillStyle = ink; ctx.fill();
+    if (!sil && o.pe) o.pe(ctx, p[2][0] + side * .022, p[2][1] + .004, side, lw);   // gancho dos personagens: sapato, tênis
   }
   // torso (bean)
   const tw = .25, tTop = -.62, tBot = -.27;
@@ -73,12 +74,14 @@ function drawStick(ctx, o) {
   const hr = .19, hx = 0, hy = -.765;
   ctx.save(); ctx.translate(hx, hy); ctx.rotate(o.headTilt || 0); ctx.translate(-hx, -hy);
   if (o.cabeca && o.cabeca !== 1) { ctx.translate(0, hy + hr); ctx.scale(1, o.cabeca); ctx.translate(0, -(hy + hr)); }   // cabeça oval: cresce para cima a partir do queixo
+  const q = o.queixo || 1;   // queixo > 1: a metade de baixo da cabeça vira meia elipse (rosto em forma de ovo)
+  const cabecaPath = () => { if (q === 1) circle(ctx, hx, hy, hr); else { ctx.beginPath(); ctx.ellipse(hx, hy, hr, hr, 0, Math.PI, TAU); ctx.ellipse(hx, hy, hr, hr * q, 0, 0, Math.PI); } };
   if (!sil && o.atras) o.atras(ctx, hx, hy, hr, lw);   // gancho: cabelo atrás da cabeça (rabo de cavalo, cabelo longo, coque)
-  if (sil) { circle(ctx, hx, hy, hr); ctx.fillStyle = sil; ctx.fill(); }
+  if (sil) { cabecaPath(); ctx.fillStyle = sil; ctx.fill(); }
   else {
-    circle(ctx, hx, hy, hr); ctx.fillStyle = o.pele || HEAD; ctx.fill();
-    ctx.save(); circle(ctx, hx, hy, hr); ctx.clip(); circle(ctx, hx - .05, hy - .045, hr * 1.02); ctx.fillStyle = 'rgba(0,0,0,0)';
-    ctx.beginPath(); ctx.arc(hx, hy, hr + .01, 0, TAU); ctx.arc(hx - .045, hy - .04, hr * 1.0, 0, TAU, true); ctx.fillStyle = o.peleSombra || HEAD_SH; ctx.fill(); ctx.restore();
+    cabecaPath(); ctx.fillStyle = o.pele || HEAD; ctx.fill();
+    ctx.save(); cabecaPath(); ctx.clip();
+    ctx.beginPath(); ctx.arc(hx, hy, hr * q + .01, 0, TAU); ctx.arc(hx - .045, hy - .04, hr * 1.0, 0, TAU, true); ctx.fillStyle = o.peleSombra || HEAD_SH; ctx.fill(); ctx.restore();
     if (o.blush) { ellipse(ctx, hx - .1, hy + .06, .035, .02); ellipse(ctx, hx + .1, hy + .06, .035, .02); ctx.fillStyle = 'rgba(240,120,120,.35)'; ctx.fill(); }
   }
   // hat
@@ -89,7 +92,7 @@ function drawStick(ctx, o) {
     else if (hat === 'captain') drawCaptainHat(ctx, hx, hy, hr, lw);
   }
   if (!sil && o.cabelo) o.cabelo(ctx, hx, hy, hr, lw);   // gancho: franja e topo do cabelo, por baixo do contorno e do rosto
-  if (!sil) { circle(ctx, hx, hy, hr); fillStroke(ctx, null, lw); }
+  if (!sil) { cabecaPath(); fillStroke(ctx, null, lw); }
   // face
   drawFace(ctx, hx, hy, hr, o.face || {}, o, sil);
   if (!sil && o.frente) o.frente(ctx, hx, hy, hr, lw);   // gancho: boné, óculos, bigode, barba (desenhados por cima do rosto)

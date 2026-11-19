@@ -199,6 +199,33 @@ const ACESSORIOS = {
     rrect(ctx, x - .035, y, .07, .05, .008); fillStroke(ctx, cor, lw * .6);
     line(ctx, x - .02, y + .018, x + .02, y + .018, .007); line(ctx, x - .02, y + .033, x + .01, y + .033, .007);
   } },
+  mangas: { onde: 'roupa', cor: '#f7f5f0', desenha: (ctx, p, cor) => {   // manga curta: some por baixo do braço
+    for (const s of [-1, 1]) { ellipse(ctx, s * .118, p.tTop + .05, .056, .042, s * .55); fillStroke(ctx, cor, p.lw * .8); }
+  } },
+  gola: { onde: 'roupa', cor: '#ff6f9f', desenha: (ctx, p, cor) => {   // gola redonda logo abaixo do queixo
+    ctx.beginPath(); ctx.arc(0, -.575, .066, .2 * Math.PI, .8 * Math.PI); ctx.lineWidth = .022; ctx.strokeStyle = cor; ctx.lineCap = 'round'; ctx.stroke();
+  } },
+  jardineira: { onde: 'roupa', cor: '#9db9dc', desenha: (ctx, p, cor) => {   // macacão jeans de short: peito, alças, botões e bolsos
+    const { tw, tTop, tBot, lw } = p, cint = tTop + .2, peito = tTop + .125, esc = escurecer(cor, .14), costura = escurecer(cor, .3);
+    ctx.beginPath(); ctx.roundRect(-tw / 2, cint, tw, tBot - cint + .05, [0, 0, .03, .03]); fillStroke(ctx, cor, lw);
+    ctx.save(); ctx.beginPath(); ctx.roundRect(-tw / 2, cint, tw, tBot - cint + .05, [0, 0, .03, .03]); ctx.clip();
+    ctx.fillStyle = esc; ctx.fillRect(tw * .18, cint, tw, 1);                                   // lado na sombra
+    ctx.fillStyle = escurecer(cor, -.12); ctx.fillRect(-tw, tBot + .028, tw * 2, .03);          // barra dobrada
+    ctx.restore();
+    line(ctx, -tw / 2, tBot + .028, tw / 2, tBot + .028, lw * .6);
+    line(ctx, 0, tBot - .005, 0, tBot + .05, lw * .7);                                           // entre as pernas
+    for (const s of [-1, 1]) { ctx.beginPath(); ctx.arc(s * tw / 2, cint + .005, .05, s > 0 ? Math.PI * .5 : 0, s > 0 ? Math.PI : Math.PI * .5); ctx.lineWidth = .007; ctx.strokeStyle = costura; ctx.stroke(); }
+    ctx.beginPath(); ctx.roundRect(-.07, peito, .14, cint - peito + .005, [.014, .014, 0, 0]); fillStroke(ctx, cor, lw);   // peito
+    for (const s of [-1, 1]) { line(ctx, s * .062, peito + .01, s * .1, tTop + .004, .028); line(ctx, s * .062, peito + .01, s * .1, tTop + .004, .015, cor); }   // alças
+    ctx.beginPath(); ctx.roundRect(-.04, peito + .03, .08, cint - peito - .045, [.006, .006, .02, .02]); ctx.lineWidth = .008; ctx.strokeStyle = costura; ctx.stroke();   // bolso
+    ctx.save(); ctx.setLineDash([.008, .006]); ctx.beginPath(); ctx.moveTo(-.03, peito + .04); ctx.lineTo(.03, peito + .04); ctx.lineWidth = .004; ctx.stroke(); ctx.restore();
+    line(ctx, -tw / 2, cint, tw / 2, cint, lw * .8);                                             // cintura
+    for (const s of [-1, 1]) { circle(ctx, s * .062, peito + .013, .012); fillStroke(ctx, '#c9ccd2', lw * .6); }   // botões
+  } },
+  tenis: { onde: 'pe', cor: '#1e1a1c', desenha: (ctx, p, cor) => {   // tênis escuro de sola branca
+    ellipse(ctx, p.x + p.side * .006, p.y - .008, .052, .03); fillStroke(ctx, cor, p.lw * .7);
+    rrect(ctx, p.x - .052 + p.side * .006, p.y + .01, .104, .018, .008); fillStroke(ctx, '#f4f2ee', p.lw * .6);
+  } },
 };
 
 function personagem(ctx, quem, o = {}) {
@@ -217,11 +244,12 @@ function personagem(ctx, quem, o = {}) {
     cols: [f.camisa || '#2f63c9', f.listras || f.camisa || '#2f63c9'],
     belt: f.cinto ? undefined : false, hat: 'nenhum',
     pele, peleSombra: f.pele ? escurecer(f.pele) : HEAD_SH, blush: rosto.bochechas,
-    iris: rosto.iris, cabeca: f.cabeca,
+    iris: rosto.iris, cabeca: f.cabeca, queixo: f.queixo,
     face,
     atras: (c, hx, hy, hr, lw) => { if (estilo.atras) estilo.atras(c, hx, hy, hr, lw, corCabelo, mec); desenha('atras', { hx, hy, hr, lw }); camadasImagem(c, f, 'atras', hx, hy, hr); },
     cabelo: (c, hx, hy, hr, lw) => { if (estilo.frente) estilo.frente(c, hx, hy, hr, lw, corCabelo, mec); desenha('rosto', { hx, hy, hr, lw }); camadasImagem(c, f, 'rosto', hx, hy, hr); },
     frente: (c, hx, hy, hr, lw) => { desenha('frente', { hx, hy, hr, lw }); camadasImagem(c, f, 'frente', hx, hy, hr); },
     roupa: (c, tw, tTop, tBot, lw) => desenha('roupa', { tw, tTop, tBot, lw }),
+    pe: (c, x, y, side, lw) => desenha('pe', { x, y, side, lw }),
   }));
 }
