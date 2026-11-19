@@ -25,11 +25,20 @@ function clarear(hex, k = .2) {   // mistura com branco: serve também para core
 }
 // o personagem está falando no instante t? (WORDS vem do alinhamento da voz; FALAS diz de quem é cada linha)
 function falando(t, quem) {
-  const tn = typeof toNew === 'function' ? toNew(t) : t;
+  // window.DESLOCAMENTO: segundos somados ao tempo da cena quando ela foi empurrada por uma fala inserida depois (deslocarCenas)
+  const tn = (typeof toNew === 'function' ? toNew(t) : t) + (window.DESLOCAMENTO || 0);
   return WORDS.some(w => FALAS[w.line] === quem && tn >= w.s - .03 && tn < w.e + .02);
 }
 function bocaFalando(t, quem) {
   return falando(t, quem) ? ['o', 'grin', 'o', 'flat'][Math.floor(t * 11) % 4] : null;
+}
+// fala nova no meio de um diálogo já animado: empurra as cenas que começam a partir de "desde" (segundos da voz antiga)
+// em "D" segundos. Elas continuam cronometradas na voz antiga; a boca sincronizada acompanha a voz nova.
+function deslocarCenas(desde, D) {
+  SHOTS.filter(s => s.start >= desde - 1e-6).forEach(s => {
+    const draw = s.draw; s.start += D; s.end += D;
+    s.draw = function (ctx, lt, t) { window.DESLOCAMENTO = D; try { draw.call(this, ctx, lt, t - D); } finally { window.DESLOCAMENTO = 0; } };
+  });
 }
 // piscada curta a cada ~3 s, com fase diferente por personagem
 function piscada(t, quem) {

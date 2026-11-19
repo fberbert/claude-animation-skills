@@ -76,6 +76,8 @@ When the picture is a pose sheet or the head is small (under about 250 px wide),
 
 In `shots.js` draw a character with `personagem(ctx, 'duda', { t, x, y, s, flip, arms, legs, face, headTilt, bob })`: the same options as `drawStick`, plus `t` (the shot's voiceover time), which makes the mouth move on the words of that character's lines and the eyes blink. `face.mouth` is the expression when they are not talking; `fala: false` keeps the mouth still. Sheets change in one place: edit the JSON and rebuild, and every reel that uses the character follows on its next build.
 
+**A line added after the shots were timed:** add it to `falas.json`, rebuild the voice (only the new line is voiced), measure how much the following lines moved (D, from `audio/words_new.json`), then in `shots.js` call `deslocarCenas(desde, D)` after the existing `SHOTS.push` calls: every shot that starts at or after `desde` (old seconds) moves D seconds later and keeps its own timing, and the mouths still follow the new voice. Push the new shot for the added line, shorten the shot before it, and finish with `SHOTS.sort((a, b) => a.start - b.start)`. In `audio.py`, add D to the cues at or after `desde`.
+
 ## Steps
 1. **Script.** About 110 to 120 words for 38 to 40 seconds, one idea per sentence: a "what if" hook, the common belief, a turn on "But", examples that build, one shot that shows the mechanism, and a payoff that answers the hook. Show it to the user before animating.
 2. **Facts.** Check every claim with sources. Hedge theories ("scientists think").
