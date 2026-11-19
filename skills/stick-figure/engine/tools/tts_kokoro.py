@@ -1,5 +1,6 @@
 # Free voiceover with Kokoro, run from a reel/project folder: reads script.json (a list of sentences), writes audio/vo_kokoro.wav.
-#   tts_kokoro.py [voice] [speed]     defaults: am_michael 1.12 (other voices: af_heart, am_adam, bf_emma, bm_george ...)
+#   tts_kokoro.py [voice] [speed]     defaults: am_michael 1.12 (other voices: af_heart, am_adam, bf_emma, bm_george ...;
+#                                     Brazilian Portuguese: pf_dora, pm_alex, pm_santa). The language follows the voice.
 import json, sys, os, shutil, tempfile, numpy as np, soundfile as sf
 ROOT = os.path.dirname(os.path.dirname(os.path.realpath(__file__)))
 KIT = os.path.realpath(os.path.join(ROOT, "..", "..", "..", "kit"))  # the voice models live in kit/models
@@ -17,13 +18,17 @@ espeak = EspeakConfig(lib_path=espeakng_loader.get_library_path(), data_path=dat
 
 voice = sys.argv[1] if len(sys.argv) > 1 else "am_michael"
 speed = float(sys.argv[2]) if len(sys.argv) > 2 else 1.12
+# Kokoro voices start with the language: a/b English (US/UK), e Spanish, f French, h Hindi, i Italian, j Japanese,
+# p Brazilian Portuguese, z Mandarin
+LANG = {"a": "en-us", "b": "en-gb", "e": "es", "f": "fr-fr", "h": "hi", "i": "it", "j": "ja", "p": "pt-br", "z": "cmn"}
+lang = LANG.get(voice[0], "en-us")
 k = Kokoro(os.path.join(KIT, "models/kokoro-v1.0.onnx"), os.path.join(KIT, "models/voices-v1.0.bin"), espeak_config=espeak)
 os.makedirs("audio", exist_ok=True)
-lines = json.load(open("script.json"))
+lines = json.load(open("script.json", encoding="utf-8"))
 GAP = 0.12  # seconds of air between lines (playbook: near-gapless VO)
 out, t, meta = [], 0.0, []
 for i, line in enumerate(lines):
-    samples, sr = k.create(line, voice=voice, speed=speed, lang="en-us")
+    samples, sr = k.create(line, voice=voice, speed=speed, lang=lang)
     # trim leading/trailing silence
     a = np.abs(samples); thr = 0.01
     idx = np.where(a > thr)[0]

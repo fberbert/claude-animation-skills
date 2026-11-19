@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 """Word timings for a voiceover, worked out on your computer (Parakeet through sherpa-onnx).
-Needs the voice models: bash kit/setup.sh --voice. Run it with kit/.venv/bin/python.
+Needs the voice models: python3 kit/setup.py --voice. Run it with kit/.venv/bin/python (kit/.venv/Scripts/python.exe on Windows).
+The word timings come from Parakeet v3, which understands 25 languages, Portuguese included.
 
     words.py <voiceover.wav|mp3|m4a> [script.txt | script.json]
 
@@ -15,6 +16,7 @@ import os
 import re
 import subprocess
 import sys
+import unicodedata
 
 import numpy as np
 
@@ -57,7 +59,7 @@ def recognise(a):
 
 def follow_script(heard, script):
     """respell the heard words as the script has them, keeping the heard timings"""
-    norm = lambda w: re.sub(r'[^a-z0-9]', '', w.lower())  # noqa: E731
+    norm = lambda w: re.sub(r'[^a-z0-9]', '', unicodedata.normalize('NFKD', w.lower()).encode('ascii', 'ignore').decode())  # noqa: E731  "não" -> "nao", not "no"
     sw = script.split()
     sm = difflib.SequenceMatcher(a=[norm(w) for w in sw], b=[norm(w[0]) for w in heard], autojunk=False)
     start = [None] * len(sw)
@@ -94,11 +96,11 @@ def main():
     path = sys.argv[1]
     script = None
     if len(sys.argv) > 2:
-        raw = open(sys.argv[2]).read()
+        raw = open(sys.argv[2], encoding='utf-8').read()
         script = ' '.join(json.loads(raw)) if sys.argv[2].endswith('.json') else raw
     ws = timings(path, script)
     out = os.path.splitext(path)[0] + '.words.json'
-    with open(out, 'w') as f:
+    with open(out, 'w', encoding='utf-8') as f:
         json.dump(ws, f, indent=0)
     line = []
     for w in ws:

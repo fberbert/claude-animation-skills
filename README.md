@@ -2,6 +2,15 @@
 
 Skills for Claude Code that make animations for reels, with no footage needed. You type `/map-route home to the gym, 2.8 km` and Claude writes the spec, renders the animation on your own computer and checks it against Instagram's safe area.
 
+> **Este fork** é usado no curso presencial "Vídeo com IA: do zero ao publicado" ([material do aluno](https://github.com/fberbert/curso-video-ia-kit)). Mudanças em relação ao [original](https://github.com/artemnovitckii/claude-animation-skills):
+>
+> - **Português do Brasil por padrão:** números no formato brasileiro no `/graph` (`R$ 18.750,50`; `"locale": "en-US"` volta ao americano), textos do `/map-route` em português ("Chegou", "faltam 1,2 km"; `"lang": "en"` volta ao inglês) e exemplos do `/breakdown` em português.
+> - **Instalação em Python** (`install.py` e `kit/setup.py`), pensada também para o Windows; `install.sh` e `kit/setup.sh` só chamam os dois.
+> - **Marcação de palavras em português:** Parakeet v3 (25 idiomas) no lugar do v2, que só entendia inglês, e comparação de palavras que respeita acentos.
+> - **Voz grátis em português:** o Kokoro usa o idioma da voz (`pf_dora`, `pm_alex`, `pm_santa` falam português do Brasil).
+> - **Linux com placa NVIDIA:** a instalação do HyperFrames não trava mais tentando baixar o CUDA.
+> - Funciona também com o [omp](https://omp.sh), que lê as skills de `~/.claude/skills`.
+
 ![The six skills, one frame each](docs/skills.jpg)
 
 | Skill | What it makes | Try it with |
@@ -31,25 +40,25 @@ See them moving: **[novitckii.com/resources/animation-styles](https://novitckii.
 
 ## Install
 
-You need macOS or Linux with **ffmpeg**, **Node.js 18+** and **Python 3.9+**.
+You need macOS, Linux or Windows with **ffmpeg**, **Node.js 20+** and **Python 3.9+**. Windows support in this fork is new: the quick skills build with Python and `npx` only, while the two engines' `make.sh` still need bash.
 
 ```bash
-brew install ffmpeg node        # if you don't have them
-git clone https://github.com/artemnovitckii/claude-animation-skills.git ~/claude-animation-skills
-cd ~/claude-animation-skills && ./install.sh
+brew install ffmpeg node        # if you don't have them (Windows: winget install Gyan.FFmpeg OpenJS.NodeJS.LTS)
+git clone https://github.com/fberbert/claude-animation-skills.git ~/claude-animation-skills
+cd ~/claude-animation-skills && python3 install.py        # Windows: py install.py
 ```
 
-`install.sh` links every skill into `~/.claude/skills/` (so they show up as `/graph`, `/map-route` and so on) and runs the one-time setup. The setup installs three.js and Playwright into `kit/node_modules`, fetches GSAP and warms up HyperFrames.
+`install.py` puts every skill into `~/.claude/skills/` (so they show up as `/graph`, `/map-route` and so on, in Claude Code and in omp; `--dest` picks another folder) and runs the one-time setup. On macOS and Linux each skill is a link to this folder; on Windows it is a copy. The setup installs three.js and Playwright into `kit/node_modules`, fetches GSAP and warms up HyperFrames.
 
-`/stick-figure` and `/zach-d-films` also need a free voice and word timings. They run on your computer, with no API key, and need about 1 GB of models, downloaded once:
+`/stick-figure` and `/zach-d-films` also need a free voice and word timings. They run on your computer, with no API key, and need about 1.3 GB of models, downloaded once:
 
 ```bash
-./install.sh --voice
+python3 install.py --voice
 ```
 
-To update later, run `git pull && ./install.sh`.
+To update later, run `git pull && python3 install.py`.
 
-**It's also packaged as a Claude Code plugin.** Run these inside Claude Code:
+**The original is also packaged as a Claude Code plugin** (without this fork's changes). Run these inside Claude Code:
 ```
 /plugin marketplace add artemnovitckii/claude-animation-skills
 /plugin install animation-skills@claude-animation-skills
@@ -86,11 +95,12 @@ skills/<name>/template.html     the animation (GSAP, or three.js for the 3D ones
 skills/stick-figure/engine/     canvas engine, voice + timing tools, make.sh, and the pirate reel as the template
 skills/zach-d-films/engine/     three.js engine (people, props, effects, renderer) and the armour short as the example
 kit/anim.py                     shared: fill a template, render, snapshots, contact sheet
-kit/words.py                    word timings for a voiceover (Parakeet, on your computer)
-kit/setup.sh                    one-time setup
+kit/words.py                    word timings for a voiceover (Parakeet v3, on your computer)
+kit/setup.py                    one-time setup (kit/setup.sh calls it)
+install.py                      puts the skills where the agent finds them (install.sh calls it)
 ```
 
-To add a quick skill, copy a folder like `skills/graph`, change `template.html` (read the spec from `const SPEC = __SPEC__`) and its `DEFAULTS` in `build.py`, then run `./install.sh` again.
+To add a quick skill, copy a folder like `skills/graph`, change `template.html` (read the spec from `const SPEC = __SPEC__`) and its `DEFAULTS` in `build.py`, then run `python3 install.py` again.
 
 ## Credits
 

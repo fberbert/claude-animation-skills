@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Shared helpers for the animation skills. Standard library only (plus ffmpeg and npx on the PATH).
+"""Shared helpers for the animation skills. Standard library only (plus ffmpeg and npx on the PATH). macOS, Linux and Windows.
 
 A builder fills a skill's template.html with its spec and renders it with HyperFrames:
     anim.build(template, defaults, duration=lambda spec: 4.0, three=False)
@@ -19,6 +19,12 @@ KIT = Path(__file__).resolve().parent
 HYPERFRAMES = 'hyperframes@0.8.34'
 W, H, FPS = 1080, 1920, 30
 SAFE_TOP, SAFE_BOTTOM, SAFE_SIDE = 220, 1500, 100      # Instagram covers the top ~220 px and the bottom ~420 px
+
+
+def node_env():
+    """environment for npm and npx. HyperFrames pulls onnxruntime-node, whose installer tries to download CUDA on a Linux
+    machine with an NVIDIA card and fails without a message; the skills don't need it."""
+    return {**os.environ, 'ONNXRUNTIME_NODE_INSTALL_CUDA': 'skip'}
 
 
 def run(cmd, **kw):
@@ -46,11 +52,11 @@ def check_setup(three):
     if three and not (KIT / 'node_modules' / 'three' / 'build' / 'three.module.js').exists():
         missing.append('three.js')
     if missing:
-        sys.exit(f'{" and ".join(missing)} not found: run  bash "{KIT}/setup.sh"  once, then build again')
+        sys.exit(f'{" and ".join(missing)} not found: run  python3 "{KIT / "setup.py"}"  once (py on Windows), then build again')
 
 
 def load_spec(path, defaults):
-    spec = json.loads(Path(path).read_text())
+    spec = json.loads(Path(path).read_text(encoding='utf-8'))
     for k, v in defaults.items():
         spec.setdefault(k, v)
     unknown = sorted(set(spec) - set(defaults) - {'out', 'hold', 'template'})
@@ -64,9 +70,9 @@ def prepare(template, spec, dur, work, three=False):
     if work.exists():
         shutil.rmtree(work)
     work.mkdir(parents=True)
-    html = Path(template).read_text()
+    html = Path(template).read_text(encoding='utf-8')
     data = json.dumps(spec, ensure_ascii=False).replace('</', '<\\/')
-    (work / 'index.html').write_text(html.replace('__SPEC__', data).replace('__DURATION__', f'{dur:.3f}'))
+    (work / 'index.html').write_text(html.replace('__SPEC__', data).replace('__DURATION__', f'{dur:.3f}'), encoding='utf-8')
     for f in (KIT / 'fonts').glob('*.woff2'):
         link(f, work / 'fonts' / f.name)
     link(KIT / 'vendor' / 'gsap.min.js', work / 'vendor' / 'gsap.min.js')
@@ -78,7 +84,9 @@ def prepare(template, spec, dur, work, three=False):
 
 
 def hyperframes(*args):
-    return subprocess.run(['npx', '--yes', HYPERFRAMES, *map(str, args)], capture_output=True, text=True)
+    npx = shutil.which('npx') or sys.exit('npx not found: install Node.js 20 or newer')
+    return subprocess.run([npx, '--yes', HYPERFRAMES, *map(str, args)], capture_output=True, text=True, encoding='utf-8',
+                          errors='replace', env=node_env())
 
 
 def render(work, out):
