@@ -13,7 +13,8 @@ window.desenharFicha = async (f, id) => {
   ctx.fillStyle = '#fbf7ef'; ctx.fillRect(0, 0, 1600, 900);
   ctx.fillStyle = '#efe7d8'; ctx.fillRect(0, 700, 1600, 200);
   text(ctx, f.nome || id, 800, 92, 72, INK, null, 0, 'Poppins', 700);
-  const voz = f.voz ? Object.entries(f.voz).map(([k, v]) => `${k} ${v}`).join(' · ') : 'sem voz';
+  const motor = f.voz && ['kokoro', 'gemini', 'elevenlabs'].find(m => f.voz[m]);
+  const voz = motor ? `${motor} ${f.voz[motor]}${f.voz.velocidade && f.voz.velocidade !== 1 ? ` · ${f.voz.velocidade}x` : ''}` : 'sem voz';
   const legenda = [f.jeito, 'voz: ' + voz].filter(Boolean).join('  |  ');
   ctx.font = '700 28px Poppins'; const cabe = Math.min(28, 28 * 1520 / ctx.measureText(legenda).width);   // texto longo diminui para caber
   text(ctx, legenda, 800, 150, cabe, '#6a6070', null, 0, 'Poppins', 700);

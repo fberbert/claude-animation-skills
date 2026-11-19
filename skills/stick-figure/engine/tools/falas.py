@@ -59,8 +59,10 @@ def chave(nome):
     sys.exit(f'falta {nome}: coloque {nome}=... no arquivo .env da pasta do vídeo')
 
 
-def para_wav(origem, destino):
-    subprocess.run(['ffmpeg', '-v', 'error', '-y', '-i', origem, '-ac', '1', '-ar', str(SR), destino], check=True)
+def para_wav(origem, destino, velocidade=1.0):
+    """Converte para 24 kHz mono; velocidade != 1 acelera sem mudar o tom (atempo), para motores sem ajuste de velocidade."""
+    filtro = ['-af', f'atempo={velocidade}'] if abs(velocidade - 1) > 1e-3 else []
+    subprocess.run(['ffmpeg', '-v', 'error', '-y', '-i', origem, *filtro, '-ac', '1', '-ar', str(SR), destino], check=True)
 
 
 _kokoro = None
@@ -108,9 +110,10 @@ def gemini(texto, voz, wav):
 
 
 def elevenlabs(texto, voz, wav):
-    corpo = json.dumps({'text': texto, 'model_id': voz.get('modelo', 'eleven_multilingual_v2'),
-                        'voice_settings': {'stability': 0.45, 'similarity_boost': 0.75, 'style': 0.3}}).encode()
-    req = urllib.request.Request(f"https://api.elevenlabs.io/v1/text-to-speech/{voz['elevenlabs']}", data=corpo,
+    # "modelo" (padrão eleven_multilingual_v2) e "ajustes" (voice_settings) vêm da ficha; "velocidade" acelera depois (atempo)
+    corpo = {'text': texto, 'model_id': voz.get('modelo', 'eleven_multilingual_v2'),
+             'voice_settings': voz.get('ajustes', {'stability': 0.45, 'similarity_boost': 0.75, 'style': 0.3})}
+    req = urllib.request.Request(f"https://api.elevenlabs.io/v1/text-to-speech/{voz['elevenlabs']}", data=json.dumps(corpo).encode(),
                                  headers={'xi-api-key': chave('ELEVENLABS_API_KEY'), 'Content-Type': 'application/json', 'Accept': 'audio/mpeg'})
     try:
         open(wav + '.mp3', 'wb').write(urllib.request.urlopen(req, timeout=180).read())
@@ -132,10 +135,19 @@ def gerar_fala(f, voz):
     if not motor:
         sys.exit(f'a ficha de "{f["quem"]}" não tem voz: use "voz": {{"kokoro": "pf_dora"}}, {{"gemini": "Kore"}} ou {{"elevenlabs": "<id>"}}')
     texto = f.get('fala', f['texto'])
-    wav = os.path.join('audio', 'falas', hashlib.sha1(json.dumps([voz, texto], sort_keys=True).encode()).hexdigest()[:16] + '.wav')
+    vel = float(voz.get('velocidade', 1.0))
+    # Kokoro fala na velocidade pedida; Gemini e ElevenLabs gravam no ritmo natural e o atempo acelera depois, então
+    # mudar a velocidade não gera (nem cobra) a fala de novo
+    chave_voz = voz if motor == 'kokoro' else {k: v for k, v in voz.items() if k != 'velocidade'}
+    wav = os.path.join('audio', 'falas', hashlib.sha1(json.dumps([chave_voz, texto], sort_keys=True).encode()).hexdigest()[:16] + '.wav')
     if not os.path.exists(wav):
         print(f'  voz {motor} ({f["quem"]}): {texto}')
         MOTORES[motor](texto, voz, wav)
+    if motor != 'kokoro' and abs(vel - 1) > 1e-3:
+        rapido = wav.replace('.wav', f'-x{vel:g}.wav')
+        if not os.path.exists(rapido):
+            para_wav(wav, rapido, vel)
+        return rapido
     return wav
 
 
