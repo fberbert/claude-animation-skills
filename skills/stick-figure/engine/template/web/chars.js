@@ -28,19 +28,26 @@ function drawStick(ctx, o) {
   const legs = o.legs || { L: [.12, -.05], R: [.12, -.05] };
   const arms = o.arms || { L: [.35, -.15], R: [.35, -.15] };
   const hipY = -.3, shY = -.535;
+  // membros: traço preto (padrão) ou, com o.membros = cor da pele, braços e pernas cor de pele com contorno
+  const pm = !sil && o.membros;
+  const membro = p => {
+    ctx.beginPath(); ctx.moveTo(...p[0]); ctx.lineTo(...p[1]); ctx.lineTo(...p[2]);
+    ctx.lineCap = 'round'; ctx.lineJoin = 'round'; ctx.lineWidth = pm ? limbW + .016 : limbW; ctx.strokeStyle = ink; ctx.stroke();
+    if (pm) { ctx.lineWidth = limbW; ctx.strokeStyle = pm; ctx.stroke(); }
+  };
   // legs
   const legP = {};
   for (const [k, side] of [['L', -1], ['R', 1]]) {
     const [a1, a2] = legs[k];
     const p = limbPts(side * .055, hipY, side, a1, a2, .155, .155); legP[k] = p;
-    ctx.beginPath(); ctx.moveTo(...p[0]); ctx.lineTo(...p[1]); ctx.lineTo(...p[2]);
-    ctx.lineWidth = limbW; ctx.strokeStyle = ink; ctx.lineCap = 'round'; ctx.lineJoin = 'round'; ctx.stroke();
-    ellipse(ctx, p[2][0] + side * .022, p[2][1] + .004, .042, .022, 0); ctx.fillStyle = ink; ctx.fill();
+    membro(p);
+    ellipse(ctx, p[2][0] + side * .022, p[2][1] + .004, .042, .022, 0); if (pm) fillStroke(ctx, pm, .012); else { ctx.fillStyle = ink; ctx.fill(); }
     if (!sil && o.pe) o.pe(ctx, p[2][0] + side * .022, p[2][1] + .004, side, lw);   // gancho dos personagens: sapato, tênis
   }
-  // torso (bean)
-  const tw = .25, tTop = -.62, tBot = -.27;
-  const torso = () => { ctx.beginPath(); ctx.roundRect(-tw / 2, tTop, tw, tBot - tTop, [.1, .1, .12, .12]); };
+  // torso (bean); o.tronco = { largura, reto } deixa mais largo e de cantos retos (camiseta)
+  const tw = (o.tronco && o.tronco.largura) || .25, tTop = -.62, tBot = -.27;
+  const cantos = o.tronco && o.tronco.reto ? [.065, .065, .03, .03] : [.1, .1, .12, .12];
+  const torso = () => { ctx.beginPath(); ctx.roundRect(-tw / 2, tTop, tw, tBot - tTop, cantos); };
   const cols = o.cols || PAL.red;
   if (sil) { torso(); ctx.fillStyle = sil; ctx.fill(); }
   else {
@@ -52,7 +59,7 @@ function drawStick(ctx, o) {
     }
     if (o.vest) { ctx.save(); torso(); ctx.clip(); ctx.fillStyle = o.vest; ctx.fillRect(-tw / 2 - .01, tTop, .07, 1); ctx.fillRect(tw / 2 - .06, tTop, .07, 1); ctx.restore(); }
     if (o.belt !== false) { ctx.save(); torso(); ctx.clip(); ctx.fillStyle = '#4a2c1c'; ctx.fillRect(-tw, -.34, tw * 2, .035); ctx.fillStyle = '#e8c04a'; ctx.fillRect(-.022, -.343, .044, .041); ctx.restore(); }
-    shadeShape(ctx, torso, 1, .18, .38, [-tw / 2, tTop, tw, tBot - tTop]);
+    shadeShape(ctx, torso, 1, o.tronco && o.tronco.reto ? .07 : .18, .38, [-tw / 2, tTop, tw, tBot - tTop]);
     torso(); fillStroke(ctx, null, lw);
     if (o.roupa) o.roupa(ctx, tw, tTop, tBot, lw);   // gancho dos personagens: gravata, avental, crachá (personagem.js)
   }
@@ -61,17 +68,19 @@ function drawStick(ctx, o) {
   for (const [k, side] of [['L', -1], ['R', 1]]) {
     const al = o.armLen || 1;
     let a1, a2;
-    if (arms[k].ik) [a1, a2] = ik(side, side * .1, shY, arms[k].ik[0], arms[k].ik[1], .14 * al, .13 * al, arms[k].bend || 1);
+    const shX = (o.tronco && o.tronco.ombro) || .1;   // ombro mais aberto num tronco de camiseta
+    if (arms[k].ik) [a1, a2] = ik(side, side * shX, shY, arms[k].ik[0], arms[k].ik[1], .14 * al, .13 * al, arms[k].bend || 1);
     else [a1, a2] = arms[k];
-    const p = limbPts(side * .1, shY, side, a1, a2, .14 * al, .13 * al); handP[k] = p;
+    const p = limbPts(side * shX, shY, side, a1, a2, .14 * al, .13 * al); handP[k] = p;
     if (o.propBehind) o.propBehind(ctx, k, p[2], p[3], side);
-    ctx.beginPath(); ctx.moveTo(...p[0]); ctx.lineTo(...p[1]); ctx.lineTo(...p[2]);
-    ctx.lineWidth = limbW; ctx.strokeStyle = ink; ctx.lineCap = 'round'; ctx.lineJoin = 'round'; ctx.stroke();
+    membro(p);
     if (o.prop) o.prop(ctx, k, p[2], p[3], side);
-    circle(ctx, p[2][0], p[2][1], .03); ctx.fillStyle = ink; ctx.fill();
+    if (pm) { circle(ctx, p[2][0], p[2][1], .033); fillStroke(ctx, pm, .012); }
+    else { circle(ctx, p[2][0], p[2][1], .03); ctx.fillStyle = ink; ctx.fill(); }
+    if (!sil && o.manga) o.manga(ctx, p, side, lw);   // gancho: manga que acompanha o braço (camiseta)
   }
   // head
-  const hr = .19, hx = 0, hy = -.765;
+  const hr = .19, hx = 0, hy = -.765 - (o.pescoco || 0);   // pescoco: sobe a cabeça e deixa o pescoço aparecer
   ctx.save(); ctx.translate(hx, hy); ctx.rotate(o.headTilt || 0); ctx.translate(-hx, -hy);
   if (o.cabeca && o.cabeca !== 1) { ctx.translate(0, hy + hr); ctx.scale(1, o.cabeca); ctx.translate(0, -(hy + hr)); }   // cabeça oval: cresce para cima a partir do queixo
   const q = o.queixo || 1;   // queixo > 1: a metade de baixo da cabeça vira meia elipse (rosto em forma de ovo)

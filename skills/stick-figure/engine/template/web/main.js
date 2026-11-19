@@ -5,7 +5,7 @@ const buf = document.createElement('canvas'); buf.width = W; buf.height = H; con
 const WARP = window.WARP || null;
 function warpMap(x, from, to) { const A = WARP.anchors; if (x <= A[0][from]) return x - A[0][from] + A[0][to]; for (let i = 0; i < A.length - 1; i++) if (x <= A[i + 1][from]) { const k = (x - A[i][from]) / (A[i + 1][from] - A[i][from]); return A[i][to] + k * (A[i + 1][to] - A[i][to]); } const L = A[A.length - 1]; return x - L[from] + L[to]; }
 const toOld = t => WARP ? warpMap(t, 1, 0) : t, toNew = t => WARP ? warpMap(t, 0, 1) : t;
-const DUR = Math.max(WARP ? WARP.new_end + 0.6 : 0, SHOTS[SHOTS.length - 1].end);   // a última cena pode durar além da voz
+const DUR = Math.max(WARP ? WARP.new_end + 0.6 : 0, toNew(SHOTS[SHOTS.length - 1].end));   // a última cena pode durar além da voz
 window.SHOT_SPANS = SHOTS.map((s, i) => [toNew(s.start), i === SHOTS.length - 1 ? DUR : toNew(s.end)]);
 const TOTAL_FRAMES = Math.round(DUR * FPS);
 
@@ -18,15 +18,17 @@ const CHUNKS = (() => {
   const ch = []; let cur = null;
   WORDS.forEach((w, i) => {
     const prev = WORDS[i - 1];
-    const brk = !cur || cur.words.length >= 2 || (cur.text + ' ' + w.w).length > 13 || /[.,?!]$/.test(prev ? prev.w : '') || (prev && prev.line !== w.line);
+    const brk = !cur || cur.words.length >= 2 || (cur.text + ' ' + w.w).length > 13 || /[.,?!:;]$/.test(prev ? prev.w : '') || (prev && prev.line !== w.line);
     if (brk) { cur = { words: [w], text: w.w, s: w.s, e: w.e }; ch.push(cur); } else { cur.words.push(w); cur.text += ' ' + w.w; cur.e = w.e; }
   });
   ch.forEach((c, i) => { const n = ch[i + 1]; c.e = n && n.s - c.e < .5 ? n.s : c.e + .25; });
   return ch;
 })();
-// caption style: lowercase, no punctuation (hyphens become spaces; letters, digits and % stay); all-caps words like "IA" or "NBA" stay uppercase
+// caption style: no punctuation (hyphens become spaces; letters, digits and % stay). window.LEGENDA in shots.js picks the case:
+// 'minusculas' (default: all lowercase, all-caps words like "IA" or "NBA" stay uppercase) or 'frase' (the script's own case:
+// capital at the start of each sentence and on names)
 const capText = s => s.replace(/[-\u2013\u2014]/g, ' ').replace(/[^\p{L}\p{N}% ]/gu, '').replace(/\s+/g, ' ').trim()
-  .split(' ').map(w => /^\p{Lu}{2,}$/u.test(w) ? w : w.toLowerCase()).join(' ');
+  .split(' ').map(w => window.LEGENDA === 'frase' || /^\p{Lu}{2,}$/u.test(w) ? w : w.toLowerCase()).join(' ');
 function drawCaption(ctx, t) {
   const c = CHUNKS.find(c => t >= c.s && t < c.e); if (!c) return;
   const k = clamp((t - c.s) / .1); const sc = .82 + .18 * backOut(k);

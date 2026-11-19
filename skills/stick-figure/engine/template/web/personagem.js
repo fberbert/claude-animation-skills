@@ -19,6 +19,10 @@ function escurecer(hex, k = .12) {
   const n = parseInt(hex.slice(1), 16), f = c => Math.round(c * (1 - k));
   return `rgb(${f(n >> 16)},${f((n >> 8) & 255)},${f(n & 255)})`;
 }
+function clarear(hex, k = .2) {   // mistura com branco: serve também para cores escuras, onde escurecer(-k) quase não muda nada
+  const n = parseInt(hex.slice(1), 16), f = c => Math.round(c + (255 - c) * k);
+  return `rgb(${f(n >> 16)},${f((n >> 8) & 255)},${f(n & 255)})`;
+}
 // o personagem está falando no instante t? (WORDS vem do alinhamento da voz; FALAS diz de quem é cada linha)
 function falando(t, quem) {
   const tn = typeof toNew === 'function' ? toNew(t) : t;
@@ -202,29 +206,62 @@ const ACESSORIOS = {
   mangas: { onde: 'roupa', cor: '#f7f5f0', desenha: (ctx, p, cor) => {   // manga curta: some por baixo do braço
     for (const s of [-1, 1]) { ellipse(ctx, s * .118, p.tTop + .05, .056, .042, s * .55); fillStroke(ctx, cor, p.lw * .8); }
   } },
-  gola: { onde: 'roupa', cor: '#ff6f9f', desenha: (ctx, p, cor) => {   // gola redonda logo abaixo do queixo
-    ctx.beginPath(); ctx.arc(0, -.575, .066, .2 * Math.PI, .8 * Math.PI); ctx.lineWidth = .022; ctx.strokeStyle = cor; ctx.lineCap = 'round'; ctx.stroke();
+  gola: { onde: 'roupa', cor: '#ff6f9f', desenha: (ctx, p, cor, f, a) => {   // gola redonda logo abaixo do queixo ("y" e "raio" ajustam)
+    ctx.beginPath(); ctx.arc(0, a.y ?? -.575, a.raio ?? .066, .2 * Math.PI, .8 * Math.PI); ctx.lineWidth = .022; ctx.strokeStyle = cor; ctx.lineCap = 'round'; ctx.stroke();
   } },
-  jardineira: { onde: 'roupa', cor: '#9db9dc', desenha: (ctx, p, cor) => {   // macacão jeans de short: peito, alças, botões e bolsos
-    const { tw, tTop, tBot, lw } = p, cint = tTop + .2, peito = tTop + .125, esc = escurecer(cor, .14), costura = escurecer(cor, .3);
-    ctx.beginPath(); ctx.roundRect(-tw / 2, cint, tw, tBot - cint + .05, [0, 0, .03, .03]); fillStroke(ctx, cor, lw);
-    ctx.save(); ctx.beginPath(); ctx.roundRect(-tw / 2, cint, tw, tBot - cint + .05, [0, 0, .03, .03]); ctx.clip();
-    ctx.fillStyle = esc; ctx.fillRect(tw * .18, cint, tw, 1);                                   // lado na sombra
-    ctx.fillStyle = escurecer(cor, -.12); ctx.fillRect(-tw, tBot + .028, tw * 2, .03);          // barra dobrada
+  jardineira: { onde: 'roupa', cor: '#9db9dc', desenha: (ctx, p, cor, f, a) => {   // macacão jeans de short: peito largo, alças, botões e bolsos
+    const { tw, tTop, tBot, lw } = p, cint = tTop + (a.cintura ?? .2), peito = tTop + (a.peito ?? .065), bw = tw * .64, bx = bw / 2, barra = tBot + .07;
+    const esc = escurecer(cor, .08), costura = escurecer(cor, .3);
+    const short = () => { ctx.beginPath(); ctx.moveTo(-tw / 2, cint); ctx.lineTo(tw / 2, cint); ctx.lineTo(tw / 2 + .006, barra); ctx.lineTo(.008, barra); ctx.lineTo(0, tBot + .01); ctx.lineTo(-.008, barra); ctx.lineTo(-tw / 2 - .006, barra); ctx.closePath(); };
+    short(); fillStroke(ctx, cor, lw);
+    ctx.save(); short(); ctx.clip();
+    ctx.fillStyle = esc; ctx.fillRect(tw * .25, cint, tw, 1);                                   // lado na sombra
+    ctx.fillStyle = clarear(cor, .25); ctx.fillRect(-tw, barra - .026, tw * 2, .026);            // barra dobrada
     ctx.restore();
-    line(ctx, -tw / 2, tBot + .028, tw / 2, tBot + .028, lw * .6);
-    line(ctx, 0, tBot - .005, 0, tBot + .05, lw * .7);                                           // entre as pernas
-    for (const s of [-1, 1]) { ctx.beginPath(); ctx.arc(s * tw / 2, cint + .005, .05, s > 0 ? Math.PI * .5 : 0, s > 0 ? Math.PI : Math.PI * .5); ctx.lineWidth = .007; ctx.strokeStyle = costura; ctx.stroke(); }
-    ctx.beginPath(); ctx.roundRect(-.07, peito, .14, cint - peito + .005, [.014, .014, 0, 0]); fillStroke(ctx, cor, lw);   // peito
-    for (const s of [-1, 1]) { line(ctx, s * .062, peito + .01, s * .1, tTop + .004, .028); line(ctx, s * .062, peito + .01, s * .1, tTop + .004, .015, cor); }   // alças
-    ctx.beginPath(); ctx.roundRect(-.04, peito + .03, .08, cint - peito - .045, [.006, .006, .02, .02]); ctx.lineWidth = .008; ctx.strokeStyle = costura; ctx.stroke();   // bolso
-    ctx.save(); ctx.setLineDash([.008, .006]); ctx.beginPath(); ctx.moveTo(-.03, peito + .04); ctx.lineTo(.03, peito + .04); ctx.lineWidth = .004; ctx.stroke(); ctx.restore();
+    line(ctx, -tw / 2 - .004, barra - .026, -.008, barra - .026, lw * .6); line(ctx, .008, barra - .026, tw / 2 + .004, barra - .026, lw * .6);
+    for (const s of [-1, 1]) { ctx.beginPath(); ctx.arc(s * tw / 2, cint + .008, .048, s > 0 ? Math.PI * .5 : 0, s > 0 ? Math.PI : Math.PI * .5); ctx.lineWidth = .007; ctx.strokeStyle = costura; ctx.stroke(); }   // bolsos da frente
+    ctx.beginPath(); ctx.roundRect(-bx, peito, bw, cint - peito + .005, [.012, .012, 0, 0]); fillStroke(ctx, cor, lw);   // peito
+    for (const s of [-1, 1]) { line(ctx, s * (bx - .012), peito + .012, s * tw * .38, tTop + .004, .028); line(ctx, s * (bx - .012), peito + .012, s * tw * .38, tTop + .004, .015, cor); }   // alças
+    const pw = bw * .52, ph = (cint - peito) * .55, py = peito + (cint - peito) * .3;
+    ctx.beginPath(); ctx.moveTo(-pw / 2, py); ctx.lineTo(pw / 2, py); ctx.lineTo(pw / 2, py + ph * .75); ctx.lineTo(0, py + ph); ctx.lineTo(-pw / 2, py + ph * .75); ctx.closePath();
+    ctx.lineWidth = .008; ctx.strokeStyle = costura; ctx.stroke();                                // bolso do peito
+    ctx.save(); ctx.setLineDash([.008, .006]); ctx.beginPath(); ctx.moveTo(-pw / 2 + .008, py + .01); ctx.lineTo(pw / 2 - .008, py + .01); ctx.lineWidth = .004; ctx.stroke(); ctx.restore();
     line(ctx, -tw / 2, cint, tw / 2, cint, lw * .8);                                             // cintura
-    for (const s of [-1, 1]) { circle(ctx, s * .062, peito + .013, .012); fillStroke(ctx, '#c9ccd2', lw * .6); }   // botões
+    for (const s of [-1, 1]) { circle(ctx, s * (bx - .012), peito + .014, .012); fillStroke(ctx, '#c9ccd2', lw * .6); }   // botões
   } },
   tenis: { onde: 'pe', cor: '#1e1a1c', desenha: (ctx, p, cor) => {   // tênis escuro de sola branca
     ellipse(ctx, p.x + p.side * .006, p.y - .008, .052, .03); fillStroke(ctx, cor, p.lw * .7);
     rrect(ctx, p.x - .052 + p.side * .006, p.y + .01, .104, .018, .008); fillStroke(ctx, '#f4f2ee', p.lw * .6);
+  } },
+  camiseta: { cor: '#2b2a2e',   // camiseta de manga curta: gola com o pescoço aparecendo e mangas que acompanham os braços
+    // combina com "tronco": {"largura": 0.29, "reto": true} na ficha (tronco de camiseta, mais largo e de cantos retos)
+    roupa: (ctx, p, cor) => {
+      ctx.beginPath(); ctx.moveTo(-.05, -.6); ctx.quadraticCurveTo(0, -.53, .05, -.6); ctx.closePath(); fillStroke(ctx, p.pele, p.lw * .8);   // pescoço na gola
+    },
+    manga: (ctx, p, cor) => {
+      const [o, c] = p.pts, d = Math.hypot(c[0] - o[0], c[1] - o[1]), ux = (c[0] - o[0]) / d, uy = (c[1] - o[1]) / d, nx = -uy, ny = ux;
+      const L = .078, w0 = .058, w1 = .046, ox = o[0] - ux * .045, oy = o[1] - uy * .045;
+      ctx.beginPath(); ctx.moveTo(ox + nx * w0, oy + ny * w0); ctx.lineTo(o[0] + ux * L + nx * w1, o[1] + uy * L + ny * w1);
+      ctx.lineTo(o[0] + ux * L - nx * w1, o[1] + uy * L - ny * w1); ctx.lineTo(ox - nx * w0, oy - ny * w0); ctx.closePath();
+      ctx.lineJoin = 'round'; fillStroke(ctx, cor, p.lw * .8);
+    } },
+  bermuda: { onde: 'roupa', cor: '#f4f2ec', desenha: (ctx, p, cor, f, a) => {   // bermuda até o meio da coxa, com cós, bolsos e barra
+    const { tw, tTop, tBot, lw } = p, cint = tTop + (a.cintura ?? .21), barra = tBot + (a.barra ?? .085), costura = escurecer(cor, .3);   // "cintura" e "barra" ajustam a altura
+    const forma = () => { ctx.beginPath(); ctx.moveTo(-tw / 2, cint); ctx.lineTo(tw / 2, cint); ctx.lineTo(tw / 2 + .006, barra); ctx.lineTo(.008, barra); ctx.lineTo(0, tBot + .01); ctx.lineTo(-.008, barra); ctx.lineTo(-tw / 2 - .006, barra); ctx.closePath(); };
+    forma(); fillStroke(ctx, cor, lw);
+    if (a.sombra !== false) { ctx.save(); forma(); ctx.clip(); ctx.fillStyle = escurecer(cor, .04); ctx.fillRect(tw * .3, cint, tw, 1); ctx.restore(); }   // lado na sombra ("sombra": false tira)
+    line(ctx, -tw / 2, cint + .028, tw / 2, cint + .028, .007, costura);                                       // cós
+    for (const s of [-1, 1]) {
+      ctx.beginPath(); ctx.arc(s * tw / 2, cint + .03, .045, s > 0 ? Math.PI * .5 : 0, s > 0 ? Math.PI : Math.PI * .5); ctx.lineWidth = .007; ctx.strokeStyle = costura; ctx.stroke();   // bolsos
+      line(ctx, s * (tw / 2 - .004), barra - .02, s * .014, barra - .02, .006, costura);                        // barra
+    }
+    line(ctx, 0, cint + .028, 0, tBot - .02, .006, costura);                                                    // braguilha
+  } },
+  sapato: { onde: 'pe', cor: '#ff6fa8', desenha: (ctx, p, cor) => {   // sapato colorido, bico arredondado e sola mais escura
+    const x = p.x + p.side * .01;
+    ctx.beginPath(); ctx.ellipse(x, p.y - .006, .058, .03, 0, Math.PI, 0); ctx.lineTo(x + .058, p.y + .012); ctx.lineTo(x - .058, p.y + .012); ctx.closePath(); fillStroke(ctx, cor, p.lw * .7);
+    rrect(ctx, x - .06, p.y + .008, .12, .016, .007); fillStroke(ctx, escurecer(cor, .35), p.lw * .6);
+    ellipse(ctx, x + p.side * .025, p.y - .02, .014, .006, p.side * -.4); ctx.fillStyle = 'rgba(255,255,255,.45)'; ctx.fill();   // brilho no bico
   } },
 };
 
@@ -237,19 +274,25 @@ function personagem(ctx, quem, o = {}) {
   if (o.t != null && face.blink == null) face.blink = piscada(o.t, quem);
   const estilo = CABELOS[cab.estilo] || CABELOS.careca, corCabelo = cab.cor || '#3b2216', mec = cab.mechas;
   const acs = (f.acessorios || []).map(a => typeof a === 'string' ? { tipo: a } : a).filter(a => ACESSORIOS[a.tipo]);
-  const desenha = (onde, p) => acs.forEach(a => { const A = ACESSORIOS[a.tipo]; if (A.onde === onde) A.desenha(ctx, p, a.cor || A.cor || corCabelo, face, a); });
+  // um acessório desenha numa camada ("onde" + "desenha") ou em várias (uma função por camada: roupa, manga...)
+  const desenha = (onde, p) => acs.forEach(a => {
+    const A = ACESSORIOS[a.tipo], fn = typeof A[onde] === 'function' ? A[onde] : A.onde === onde ? A.desenha : null;
+    if (fn) fn(ctx, p, a.cor || A.cor || corCabelo, face, a);
+  });
   const pele = f.pele || HEAD;
   drawStick(ctx, Object.assign({}, o, {
     s: (o.s || 400) * (f.altura || 1),
     cols: [f.camisa || '#2f63c9', f.listras || f.camisa || '#2f63c9'],
     belt: f.cinto ? undefined : false, hat: 'nenhum',
     pele, peleSombra: f.pele ? escurecer(f.pele) : HEAD_SH, blush: rosto.bochechas,
-    iris: rosto.iris, cabeca: f.cabeca, queixo: f.queixo,
+    iris: rosto.iris, cabeca: f.cabeca, queixo: f.queixo, tronco: f.tronco, pescoco: f.pescoco,
+    membros: f.membros === 'pele' ? pele : f.membros,   // "pele": braços e pernas cor de pele com contorno
     face,
     atras: (c, hx, hy, hr, lw) => { if (estilo.atras) estilo.atras(c, hx, hy, hr, lw, corCabelo, mec); desenha('atras', { hx, hy, hr, lw }); camadasImagem(c, f, 'atras', hx, hy, hr); },
     cabelo: (c, hx, hy, hr, lw) => { if (estilo.frente) estilo.frente(c, hx, hy, hr, lw, corCabelo, mec); desenha('rosto', { hx, hy, hr, lw }); camadasImagem(c, f, 'rosto', hx, hy, hr); },
     frente: (c, hx, hy, hr, lw) => { desenha('frente', { hx, hy, hr, lw }); camadasImagem(c, f, 'frente', hx, hy, hr); },
-    roupa: (c, tw, tTop, tBot, lw) => desenha('roupa', { tw, tTop, tBot, lw }),
+    roupa: (c, tw, tTop, tBot, lw) => desenha('roupa', { tw, tTop, tBot, lw, pele }),
+    manga: (c, pts, side, lw) => desenha('manga', { pts, side, lw, pele }),
     pe: (c, x, y, side, lw) => desenha('pe', { x, y, side, lw }),
   }));
 }

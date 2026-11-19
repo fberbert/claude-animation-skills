@@ -81,6 +81,11 @@ def main():
                         & (((dist < 1.0) & (dy < .85)) | ((dy >= .85) & (dist < 1.1) & (np.abs(dx) < .62)))))
     imagens = []
     for nome, camada, m in camadas:
+        if nome.startswith('cabelo'):   # sem pontos soltos (pinta na testa, sujeira): só manchas grandes, ligadas ao cabelo
+            rot, n = ndimage.label(m)
+            if n:
+                areas = ndimage.sum(m, rot, range(1, n + 1))
+                m = np.isin(rot, 1 + np.nonzero(areas >= .006 * R * R)[0])
         alfa = Image.fromarray((m * 255).astype(np.uint8)).filter(ImageFilter.GaussianBlur(.7))
         cor = Image.fromarray((rgb * 255).astype(np.uint8)); cor.putalpha(alfa)
         lado = int(round(4 * R)); x0, y0 = int(round(cx - 2 * R)), int(round(cy - 2 * R))   # de -2 a +2 raios

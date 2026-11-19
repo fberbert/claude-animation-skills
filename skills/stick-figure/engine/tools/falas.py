@@ -169,6 +169,14 @@ def main():
         som, _ = sf.read(gerar_fala(f, elenco[f['quem']].get('voz', {})), dtype='float32')
         idx = np.where(np.abs(som) > 0.01)[0]
         som = som[max(0, idx[0] - int(0.02 * SR)): idx[-1] + int(0.06 * SR)]
+        # "pausas": [[segundo, duração]] silêncio no meio da fala (o segundo conta do início dela); cai no trecho mais
+        # quieto até 0,25 s em volta, para não cortar palavra. Não gera a fala de novo: usa a mesma gravação.
+        for seg, dur in sorted(f.get('pausas', []), reverse=True):
+            a, b = max(0, int((seg - .25) * SR)), min(len(som), int((seg + .25) * SR))
+            janela = int(.02 * SR)
+            energia = np.convolve(np.abs(som[a:b]), np.ones(janela), 'same')
+            corte = a + int(np.argmin(energia))
+            som = np.concatenate([som[:corte], np.zeros(int(dur * SR), dtype=som.dtype), som[corte:]])
         if i:
             pausa = PAUSA_TROCA if f['quem'] != falas[i - 1]['quem'] else PAUSA_MESMO
             pedacos.append(np.zeros(int(pausa * SR), dtype=np.float32)); t += pausa
