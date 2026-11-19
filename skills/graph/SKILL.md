@@ -36,12 +36,12 @@ Needs ffmpeg and Node.
 ## Spec
 ```json
 {
-  "label": "Followers",
+  "label": "Seguidores",
   "values": [1.2, 2.1, 3.4, 5, 9, 24, 51, 78, 100],
-  "labels": ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep"],
+  "labels": ["jan", "fev", "mar", "abr", "mai", "jun", "jul", "ago", "set"],
   "final": 100000,
   "prefix": "", "suffix": "", "decimals": 0,
-  "dark": false
+  "dark": false, "locale": "pt-BR"
 }
 ```
 - **`values`**: 2 or more numbers, 0 or above. The highest one touches the top gridline.
@@ -49,6 +49,7 @@ Needs ffmpeg and Node.
 - **`final`** (optional): the number the count lands on. The count is the value under the tip times `final / last value`, so you can give `values` in thousands and `final` in full. Leave it out to count in the units of `values`.
 - **`prefix`**, **`suffix`**, **`decimals`**: `"$"`, `"%"`, `" kg"`, and so on. The number shrinks itself if it gets long.
 - **`dark`**: white line on black.
+- **`locale`** (optional): number format. Default `"pt-BR"` (100.000 and 2,5); use `"en-US"` for 100,000 and 2.5.
 - **`hold`** (optional): extra seconds to hold the last frame. **`out`** (optional): the output path.
 
 ## Taste

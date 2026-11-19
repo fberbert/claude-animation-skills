@@ -10,7 +10,8 @@ HERE = Path(__file__).resolve().parent
 sys.path.insert(0, str(HERE.parents[1] / 'kit'))
 import anim  # noqa: E402
 
-DEFAULTS = {'label': '', 'values': None, 'labels': [], 'final': None, 'prefix': '', 'suffix': '', 'decimals': 0, 'dark': False}
+DEFAULTS = {'label': '', 'values': None, 'labels': [], 'final': None, 'prefix': '', 'suffix': '', 'decimals': 0, 'dark': False,
+            'locale': 'pt-BR'}
 
 
 def check(spec):

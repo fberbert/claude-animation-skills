@@ -12,7 +12,7 @@ sys.path.insert(0, str(HERE.parents[1] / 'kit'))
 import anim  # noqa: E402
 
 DEFAULTS = {'destination': None, 'minutes': None, 'distance': None, 'unit': 'km',
-            'places': ['North Quay', 'Botanic Gardens', 'Market Hall', 'Elm Park', 'The Canal'],
+            'places': ['Cais', 'Jardim Botânico', 'Mercado', 'Parque', 'Rio'], 'lang': 'pt',
             'accent': '#2f7cf6', 'seed': 7}
 
 

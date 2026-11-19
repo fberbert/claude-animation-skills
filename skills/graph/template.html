@@ -44,7 +44,7 @@ const last = V[V.length - 1] || 1;
 const FINAL = SPEC.final != null ? Number(SPEC.final) : last;
 const scale = FINAL / last;                                // the count shows (value under the tip) x scale
 const dec = SPEC.decimals || 0;
-const fmt = (x) => (SPEC.prefix || '') + x.toLocaleString('en-US', { minimumFractionDigits: dec, maximumFractionDigits: dec }) + (SPEC.suffix || '');
+const fmt = (x) => (SPEC.prefix || '') + x.toLocaleString(SPEC.locale || 'pt-BR', { minimumFractionDigits: dec, maximumFractionDigits: dec }) + (SPEC.suffix || '');
 // shrink the big number if its widest state would run past the right margin
 const num = document.getElementById('num');
 {

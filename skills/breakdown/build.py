@@ -12,10 +12,10 @@ sys.path.insert(0, str(HERE.parents[1] / 'kit'))
 import anim  # noqa: E402
 
 DEFAULTS = {
-    'title': 'Phone', 'subtitle': 'Exploded view',
-    'labels': [['Cover glass', 'toughened · 0.6 mm'], ['OLED display', '6.3 in · 120 Hz'], ['Titanium frame', 'grade 5 · 7.8 mm'],
-               ['Logic board', '3 nm chip · 8 GB'], ['Battery', '3,582 mAh'], ['Back glass', 'matte · magnet ring']],
-    'time': '9:41', 'date': 'Saturday 1 November', 'accent': '#F08A5D',
+    'title': 'Celular', 'subtitle': 'Vista explodida',
+    'labels': [['Vidro frontal', 'temperado · 0,6 mm'], ['Tela OLED', '6,3 pol · 120 Hz'], ['Moldura', 'titânio · 7,8 mm'],
+               ['Placa-mãe', 'chip de 3 nm · 8 GB'], ['Bateria', '3.582 mAh'], ['Vidro traseiro', 'fosco · anel magnético']],
+    'time': '9:41', 'date': 'sábado, 1 de novembro', 'accent': '#F08A5D',
 }
 
 

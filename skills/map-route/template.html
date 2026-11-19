@@ -42,7 +42,11 @@ const W = 1080, H = 1920, DUR = 4.0;
 const ACC = SPEC.accent;
 document.documentElement.style.setProperty('--accent', ACC);
 const KM = Number(SPEC.distance), MIN = Number(SPEC.minutes), UNIT = SPEC.unit;
-const fmtD = (x) => `${x.toFixed(1).replace(/\.0$/, '')} ${UNIT}`;
+// textos e formato de número: português do Brasil por padrão ("lang": "en" volta ao inglês)
+const EN = SPEC.lang === 'en', LOC = EN ? 'en-US' : 'pt-BR';
+const T = EN ? { arrived: 'Arrived', done: (d, m) => `${d} in ${m} min`, left: (d) => `${d} to go` }
+             : { arrived: 'Chegou', done: (d, m) => `${d} em ${m} min`, left: (d) => `faltam ${d}` };
+const fmtD = (x) => `${x.toLocaleString(LOC, { maximumFractionDigits: 1 })} ${UNIT}`;
 document.getElementById('cardn').textContent = SPEC.destination;
 document.getElementById('cardd').textContent = `${MIN} min · ${fmtD(KM)}`;
 SPEC.places.slice(0, 5).forEach((p, i) => { document.getElementById('l' + i).textContent = p || ''; });
@@ -288,8 +292,8 @@ function renderAt(t) {
     el.style.opacity = (inside ? 1 : 0) * smooth(.15, .5, t);
   });
   const left = KM * (1 - pr);
-  etan.textContent = pr >= 1 ? 'Arrived' : `${Math.max(1, Math.round(MIN * (1 - pr)))} min`;
-  etad.textContent = pr >= 1 ? `${fmtD(KM)} in ${MIN} min` : `${fmtD(Math.max(.1, left))} to go`;
+  etan.textContent = pr >= 1 ? T.arrived : `${Math.max(1, Math.round(MIN * (1 - pr)))} min`;
+  etad.textContent = pr >= 1 ? T.done(fmtD(KM), MIN) : T.left(fmtD(Math.max(.1, left)));
   const [cx, cy] = project(END.x, 3.4, END.y);
   const ca = smooth(T_PIN + .45, T_PIN + .7, t);
   card.style.opacity = ca;

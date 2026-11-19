@@ -34,8 +34,8 @@ Needs ffmpeg and Node. It renders with WebGL in headless Chrome.
 ## Spec
 ```json
 {
-  "destination": "Iron Yard Gym", "minutes": 9, "distance": 2.8, "unit": "km",
-  "places": ["North Quay", "Botanic Gardens", "Market Hall", "Elm Park", "The Canal"],
+  "destination": "Academia do Centro", "minutes": 9, "distance": 2.8, "unit": "km",
+  "places": ["Cais", "Jardim Botânico", "Mercado", "Parque", "Rio"],
   "accent": "#2f7cf6", "seed": 7
 }
 ```
@@ -43,6 +43,7 @@ Needs ffmpeg and Node. It renders with WebGL in headless Chrome.
 - **`places`**: 5 small grey labels at fixed spots on the map. In order: near the start, a park at the far left, a block mid-route, a park at the far right, the river. Use names that fit the user's city, or `""` to hide one. They are decoration, not real geography.
 - **`accent`**: the route, the moving dot and the ETA icon (hex). The pin stays red.
 - **`seed`**: a different whole number gives a different arrangement of buildings and parks.
+- **`lang`** (optional): the card and ETA texts and the number format. Default Portuguese ("Chegou", "faltam 1,2 km", "2,8 km em 9 min"); `"en"` for English ("Arrived", "1.2 km to go").
 - **`hold`** (optional): extra seconds at the end. **`out`** (optional): the output path.
 
 ## Changing the route
