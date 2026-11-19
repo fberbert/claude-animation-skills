@@ -42,11 +42,52 @@ function topoCabelo(ctx, hx, hy, hr, cor, altura = .5, ondas = 0) {
   ctx.fillStyle = 'rgba(255,255,255,.18)'; ellipse(ctx, hx - hr * .35, hy - hr * .82, hr * .3, hr * .09, -.3); ctx.fill();
   ctx.restore();
 }
+// fios mais claros (grisalho): traços curtos dentro da área já recortada
+function fios(ctx, cor, x0, y0, w, h, n, seed, ang = -.5, len = .03) {
+  if (!cor) return;
+  const r = rng(seed); ctx.save(); ctx.strokeStyle = cor; ctx.lineWidth = .005; ctx.lineCap = 'round';
+  for (let i = 0; i < n; i++) {
+    const x = x0 + r() * w, y = y0 + r() * h, a = ang + (r() - .5) * .6, l = len * (.6 + r() * .8);
+    ctx.globalAlpha = .35 + r() * .35; ctx.beginPath(); ctx.moveTo(x, y); ctx.lineTo(x + Math.cos(a) * l, y + Math.sin(a) * l); ctx.stroke();
+  }
+  ctx.restore();
+}
+// contorno do cabelo espetado: rente nas laterais, pontas só no alto da cabeça
+function coroaEspetada(ctx, hx, hy, hr) {
+  const r = rng(9), n = 17; ctx.beginPath();
+  for (let i = 0; i <= n; i++) {
+    const a = Math.PI * (.92 + i / n * 1.16), topo = Math.max(0, -Math.sin(a));   // 1 no alto, 0 nas laterais
+    const ponta = i % 2 ? 1.06 + topo * (.12 + r() * .07) : 1.04;
+    const inclina = i % 2 ? .08 : 0;   // as pontas caem um pouco para a direita
+    const x = hx + Math.cos(a + inclina) * hr * ponta, y = hy + Math.sin(a + inclina) * hr * ponta - hr * .03;
+    i ? ctx.lineTo(x, y) : ctx.moveTo(x, y);
+  }
+  ctx.closePath();
+}
 const CABELOS = {
   careca: {},
+  espetado: {   // curto e bagunçado, com costeletas descendo até a altura das orelhas
+    atras: (ctx, hx, hy, hr, lw, cor, mec) => {
+      coroaEspetada(ctx, hx, hy, hr); fillStroke(ctx, cor, lw);
+      ctx.save(); coroaEspetada(ctx, hx, hy, hr); ctx.clip(); fios(ctx, mec, hx - hr * 1.3, hy - hr * 1.35, hr * 2.6, hr * .9, 26, 3, -1.1, .035); ctx.restore();
+    },
+    frente: (ctx, hx, hy, hr, lw, cor, mec) => {
+      const borda = () => {
+        ctx.beginPath(); ctx.moveTo(hx - hr * 1.2, hy + hr * .15); ctx.lineTo(hx - hr * .86, hy + hr * .1);
+        ctx.lineTo(hx - hr * .8, hy - hr * .55);
+        const pts = [[-.6, -.76], [-.48, -.64], [-.3, -.8], [-.15, -.68], [.05, -.84], [.2, -.72], [.4, -.82], [.55, -.68], [.75, -.72]];
+        pts.forEach(([x, y]) => ctx.lineTo(hx + x * hr, hy + y * hr));
+        ctx.lineTo(hx + hr * .82, hy - hr * .52); ctx.lineTo(hx + hr * .87, hy + hr * .1); ctx.lineTo(hx + hr * 1.2, hy + hr * .15);
+        ctx.lineTo(hx + hr * 1.3, hy - hr * 1.5); ctx.lineTo(hx - hr * 1.3, hy - hr * 1.5); ctx.closePath();
+      };
+      ctx.save(); circle(ctx, hx, hy, hr); ctx.clip(); borda(); ctx.fillStyle = cor; ctx.fill();
+      borda(); ctx.clip(); fios(ctx, mec, hx - hr * 1.1, hy - hr * 1.05, hr * 2.2, hr * .5, 22, 5, -1.3, .03);
+      ctx.restore();
+    },
+  },
   curto: {
-    atras: (ctx, hx, hy, hr, lw, cor) => { circle(ctx, hx, hy - hr * .06, hr * 1.05); fillStroke(ctx, cor, lw); },
-    frente: (ctx, hx, hy, hr, lw, cor) => topoCabelo(ctx, hx, hy, hr, cor, .52, 5),
+    atras: (ctx, hx, hy, hr, lw, cor, mec) => { circle(ctx, hx, hy - hr * .06, hr * 1.05); fillStroke(ctx, cor, lw); },
+    frente: (ctx, hx, hy, hr, lw, cor, mec) => { topoCabelo(ctx, hx, hy, hr, cor, .52, 5); ctx.save(); circle(ctx, hx, hy, hr); ctx.clip(); fios(ctx, mec, hx - hr, hy - hr * 1.05, hr * 2, hr * .45, 30, 6, -1.2); ctx.restore(); },
   },
   rabo: {
     atras: (ctx, hx, hy, hr, lw, cor) => {
@@ -85,9 +126,26 @@ const CABELOS = {
   },
 };
 
-// ---------- acessórios: [{ "tipo": "oculos", "cor": "#222" }] ou só "oculos" ----------
-// onde: atras (antes da cabeça), frente (por cima do rosto), roupa (no tronco)
+// ---------- acessórios: [{ "tipo": "oculos", "cor": "#222" }] ou só "oculos"; "mechas" clareia barba e bigode ----------
+// onde: atras (antes da cabeça), rosto (na pele, por baixo de olhos e boca), frente (por cima do rosto), roupa (no tronco)
 const ACESSORIOS = {
+  'barba-cheia': { onde: 'rosto', cor: null, desenha: (ctx, p, cor, f, a) => {   // das costeletas ao queixo, com bigode; a boca fica por cima
+    const { hx, hy, hr } = p;
+    const forma = () => {   // costeletas finas junto às orelhas; a borda de cima desce das maçãs do rosto ao bigode
+      ctx.beginPath(); ctx.arc(hx, hy, hr * 1.04, 0, Math.PI);
+      ctx.quadraticCurveTo(hx - hr * .82, hy + hr * .5, hx - hr * .45, hy + hr * .42);
+      ctx.quadraticCurveTo(hx - hr * .2, hy + hr * .27, hx, hy + hr * .31);
+      ctx.quadraticCurveTo(hx + hr * .2, hy + hr * .27, hx + hr * .45, hy + hr * .42);
+      ctx.quadraticCurveTo(hx + hr * .82, hy + hr * .5, hx + hr * 1.04, hy); ctx.closePath();
+    };
+    ctx.save(); circle(ctx, hx, hy, hr * 1.06); ctx.clip();
+    forma(); ctx.fillStyle = cor; ctx.fill();
+    forma(); ctx.clip(); fios(ctx, a.mechas, hx - hr * 1.05, hy + hr * .3, hr * 2.1, hr * .85, 110, 11, 1.4, .025);
+    ctx.restore();
+  } },
+  pinta: { onde: 'frente', cor: '#6b4a3a', desenha: (ctx, p, cor, f) => {
+    circle(ctx, p.hx - p.hr * .38 + (f.turn || 0) * .06, p.hy - p.hr * .6, .011); ctx.fillStyle = cor; ctx.fill();
+  } },
   oculos: { onde: 'frente', cor: '#221c22', desenha: (ctx, p, cor, f) => {
     const dx = (f.turn || 0) * .06, ey = p.hy - .005;
     for (const s of [-1, 1]) { circle(ctx, p.hx + s * .072 + dx, ey, .058); ctx.fillStyle = 'rgba(255,255,255,.18)'; ctx.fill(); ctx.lineWidth = .016; ctx.strokeStyle = cor; ctx.stroke(); }
@@ -139,21 +197,22 @@ function personagem(ctx, quem, o = {}) {
   const f = ELENCO[quem];
   if (!f) throw new Error(`personagem "${quem}" não está no elenco: crie personagens/${quem}.json e cite-o em falas.json (ou em elenco.json)`);
   const rosto = f.rosto || {}, cab = f.cabelo || { estilo: 'careca' };
-  const face = Object.assign({ eyes: rosto.olhos || 'normal', mouth: rosto.boca || 'smile', eyeR: .042 * (rosto.olhosTamanho || 1) }, o.face);
+  const face = Object.assign({ eyes: rosto.olhos || 'normal', mouth: rosto.boca || 'smile', eyeR: .042 * (rosto.olhosTamanho || 1), eyeW: rosto.olhosLargura || 1 }, o.face);
   if (o.t != null && o.fala !== false) { const m = bocaFalando(o.t, quem); if (m) face.mouth = m; }
   if (o.t != null && face.blink == null) face.blink = piscada(o.t, quem);
-  const estilo = CABELOS[cab.estilo] || CABELOS.careca, corCabelo = cab.cor || '#3b2216';
+  const estilo = CABELOS[cab.estilo] || CABELOS.careca, corCabelo = cab.cor || '#3b2216', mec = cab.mechas;
   const acs = (f.acessorios || []).map(a => typeof a === 'string' ? { tipo: a } : a).filter(a => ACESSORIOS[a.tipo]);
-  const desenha = (onde, p) => acs.forEach(a => { const A = ACESSORIOS[a.tipo]; if (A.onde === onde) A.desenha(ctx, p, a.cor || A.cor || corCabelo, face); });
+  const desenha = (onde, p) => acs.forEach(a => { const A = ACESSORIOS[a.tipo]; if (A.onde === onde) A.desenha(ctx, p, a.cor || A.cor || corCabelo, face, a); });
   const pele = f.pele || HEAD;
   drawStick(ctx, Object.assign({}, o, {
     s: (o.s || 400) * (f.altura || 1),
     cols: [f.camisa || '#2f63c9', f.listras || f.camisa || '#2f63c9'],
     belt: f.cinto ? undefined : false, hat: 'nenhum',
     pele, peleSombra: f.pele ? escurecer(f.pele) : HEAD_SH, blush: rosto.bochechas,
+    iris: rosto.iris, cabeca: f.cabeca,
     face,
-    atras: (c, hx, hy, hr, lw) => { if (estilo.atras) estilo.atras(c, hx, hy, hr, lw, corCabelo); desenha('atras', { hx, hy, hr, lw }); },
-    cabelo: (c, hx, hy, hr, lw) => { if (estilo.frente) estilo.frente(c, hx, hy, hr, lw, corCabelo); },
+    atras: (c, hx, hy, hr, lw) => { if (estilo.atras) estilo.atras(c, hx, hy, hr, lw, corCabelo, mec); desenha('atras', { hx, hy, hr, lw }); },
+    cabelo: (c, hx, hy, hr, lw) => { if (estilo.frente) estilo.frente(c, hx, hy, hr, lw, corCabelo, mec); desenha('rosto', { hx, hy, hr, lw }); },
     frente: (c, hx, hy, hr, lw) => desenha('frente', { hx, hy, hr, lw }),
     roupa: (c, tw, tTop, tBot, lw) => desenha('roupa', { tw, tTop, tBot, lw }),
   }));

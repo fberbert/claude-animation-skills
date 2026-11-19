@@ -41,7 +41,7 @@ A reel is one folder:
 **Timing:** `audio/words_ref.json` is the voice the shots were timed against. When the voice changes but the words don't, `make.py` warps the shots onto the new take, so a new recording needs no edits. If the script changes, delete `audio/words_ref.json` (the next take becomes the reference) and re-time `shots.js`.
 
 ## Characters and dialogue
-A character is a JSON sheet, `personagens/<id>.json`, made once and reused in any reel. The reel's own `personagens/` folder wins; otherwise the sheet comes from the user's library, `~/personagens/` (or the folder in the `PERSONAGENS` environment variable). Save every new character to the library so the next video can use it.
+A character is a JSON sheet, `personagens/<id>.json`, made once and reused in any reel. The sheet is looked up in the reel's own `personagens/` first, then in the nearest `personagens/` folder above the reel: keep the library at the root of the user's project (reels in subfolders find it, and it is versioned with the project). Without a project, `~/personagens/` (or the folder in `PERSONAGENS`) is the fallback. Save every new character to the library so the next video can use it.
 ```json
 {
   "nome": "Duda",
@@ -55,11 +55,14 @@ A character is a JSON sheet, `personagens/<id>.json`, made once and reused in an
   "altura": 1.0
 }
 ```
-- `cabelo.estilo`: `careca`, `curto`, `rabo` (ponytail), `coque` (bun), `longo` (shoulder length), `cacheado` (curly).
-- `acessorios`: `oculos`, `bone` (cap), `bigode`, `barba`, `brinco`, `laco` (bow), `gravata` (tie), `avental` (apron), `cracha` (badge); each takes an optional `cor`. New ones go in `ACESSORIOS` in `web/personagem.js`, new hair in `CABELOS`.
+- `cabelo.estilo`: `careca`, `curto`, `espetado` (short and messy, with sideburns), `rabo` (ponytail), `coque` (bun), `longo` (shoulder length), `cacheado` (curly). `cabelo.mechas` adds lighter strands (salt and pepper) to `curto` and `espetado`.
+- `acessorios`: `oculos`, `bone` (cap), `bigode`, `barba` (chin), `barba-cheia` (sideburns to chin with moustache, under the mouth; takes `mechas` too), `pinta` (mole), `brinco`, `laco` (bow), `gravata` (tie), `avental` (apron), `cracha` (badge); each takes an optional `cor`. New ones go in `ACESSORIOS` in `web/personagem.js` (`onde`: `atras`, `rosto`, `frente` or `roupa`), new hair in `CABELOS`.
+- `cabeca`: head height, 1 is round, 1.15 a taller oval.
 - `voz`: `{"kokoro": "pf_dora" | "pm_alex" | "pm_santa"}` (free, offline), `{"gemini": "Kore", "estilo": "..."}` (free tier with a daily limit, `GEMINI_API_KEY`; the tool waits 21 s between requests), `{"elevenlabs": "<voice id>"}` (paid per character; ask before using). A line can use the user's own recording instead: `"arquivo": "gravacoes/1.m4a"`.
 - `jeito` is the personality: read it before writing the character's lines and poses.
-- `rosto.boca` is the resting mouth; `rosto.olhos` any eye kind of `drawFace`.
+- `rosto.boca` is the resting mouth; `rosto.olhos` any eye kind of `drawFace` (`half` gives heavy lids); `rosto.iris` colours the iris; `rosto.olhosLargura` widens the eyes (1.25 for wide ovals).
+
+**From a picture:** when the user sends a drawing or photo of the character they want, read it and map it onto these fields (hair style and colour, skin, shirt, accessories, eyes, head shape), render the sheet and compare it side by side with the picture before showing it. If something has no field yet (a hat, a hairstyle), add it to `personagem.js` rather than faking it with the nearest one. A photo of a real person needs that person's consent.
 
 **Check the look first:** `node "$ENGINE/tools/ficha.js" personagens/duda.json` writes `personagens/duda.png`, the character in five poses (standing, talking, happy, surprised, side view). Show it to the user and adjust colours, hair and accessories before animating.
 

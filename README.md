@@ -9,7 +9,7 @@ Skills for Claude Code that make animations for reels, with no footage needed. Y
 > - **Marcação de palavras em português:** Parakeet v3 (25 idiomas) no lugar do v2, que só entendia inglês, e comparação de palavras que respeita acentos.
 > - **Voz grátis em português:** o Kokoro usa o idioma da voz (`pf_dora`, `pm_alex`, `pm_santa` falam português do Brasil).
 > - **Linux com placa NVIDIA:** a instalação do HyperFrames não trava mais tentando baixar o CUDA.
-> - **Personagens reutilizáveis no `/stick-figure`:** cada personagem é uma ficha (`personagens/<id>.json`: cabelo, pele, roupa, acessórios, jeito e voz), conferida numa folha de poses (`tools/ficha.js`) e guardada em `~/personagens/` para os próximos vídeos. Diálogos (`falas.json`) saem com a voz de cada personagem (Kokoro, Gemini, ElevenLabs ou gravação própria) e a boca mexe nas palavras de quem fala. Exemplo pronto em `engine/dialogo`.
+> - **Personagens reutilizáveis no `/stick-figure`:** cada personagem é uma ficha (`personagens/<id>.json`: cabelo, pele, roupa, acessórios, jeito e voz), conferida numa folha de poses (`tools/ficha.js`) e guardada na pasta `personagens/` do projeto, que todo vídeo dentro dele encontra (e que vai junto no git). Pode nascer de uma descrição ou de um desenho. Diálogos (`falas.json`) saem com a voz de cada personagem (Kokoro, Gemini, ElevenLabs ou gravação própria) e a boca mexe nas palavras de quem fala. Exemplo pronto em `engine/dialogo`.
 > - **`/stick-figure` sem bash:** `make.py` e `novo.py` no lugar do `make.sh`, para rodar igual no Windows.
 > - Funciona também com o [omp](https://omp.sh), que lê as skills de `~/.claude/skills`.
 

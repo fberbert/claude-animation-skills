@@ -72,6 +72,7 @@ function drawStick(ctx, o) {
   // head
   const hr = .19, hx = 0, hy = -.765;
   ctx.save(); ctx.translate(hx, hy); ctx.rotate(o.headTilt || 0); ctx.translate(-hx, -hy);
+  if (o.cabeca && o.cabeca !== 1) { ctx.translate(0, hy + hr); ctx.scale(1, o.cabeca); ctx.translate(0, -(hy + hr)); }   // cabeça oval: cresce para cima a partir do queixo
   if (!sil && o.atras) o.atras(ctx, hx, hy, hr, lw);   // gancho: cabelo atrás da cabeça (rabo de cavalo, cabelo longo, coque)
   if (sil) { circle(ctx, hx, hy, hr); ctx.fillStyle = sil; ctx.fill(); }
   else {
@@ -152,15 +153,18 @@ function drawFace(ctx, hx, hy, hr, f, o, sil) {
     }
     if (k === 'x') { const xc = glow ? '#fff' : INK; line(ctx, x - .03, y - .03, x + .03, y + .03, .018, xc); line(ctx, x + .03, y - .03, x - .03, y + .03, .018, xc); continue; }
     let r = k === 'wide' ? er * 1.3 : er;
+    const rw = r * (f.eyeW || 1);   // eyeW > 1: olho oval, mais largo que alto
     const pr = k === 'wide' ? r * .3 : (f.pupil || .45) * r;
     ctx.save();
-    ellipse(ctx, x, y, r, r * (1 - blink * .92)); ctx.fillStyle = glow ? '#fff' : '#fff'; ctx.fill();
+    ellipse(ctx, x, y, rw, r * (1 - blink * .92)); ctx.fillStyle = glow ? '#fff' : '#fff'; ctx.fill();
     if (!glow) { ctx.lineWidth = .013; ctx.strokeStyle = INK; ctx.stroke(); }
-    ellipse(ctx, x, y, r, r * (1 - blink * .92)); ctx.clip();
+    ellipse(ctx, x, y, rw, r * (1 - blink * .92)); ctx.clip();
     const px = x + look[0] * r * .45, py = y + look[1] * r * .45;
-    circle(ctx, px, py, pr); ctx.fillStyle = INK; ctx.fill();
+    if (o.iris && !glow) { circle(ctx, px, py, pr * 1.55); ctx.fillStyle = o.iris; ctx.fill(); circle(ctx, px, py, pr * .75); }   // íris colorida em volta da pupila
+    else circle(ctx, px, py, pr);
+    ctx.fillStyle = INK; ctx.fill();
     if (pr > .012) { circle(ctx, px - pr * .35, py - pr * .35, pr * .3); ctx.fillStyle = '#fff'; ctx.fill(); }
-    if (k === 'smug' || k === 'half') { ctx.fillStyle = sil || o.pele || HEAD; ctx.fillRect(x - r - .01, y - r - .01, r * 2 + .02, r * (k === 'half' ? .9 : 1.05)); line(ctx, x - r, y - r * (k === 'half' ? .1 : -.05), x + r, y - r * (k === 'half' ? .1 : -.05), .014); }
+    if (k === 'smug' || k === 'half') { ctx.fillStyle = sil || o.pele || HEAD; ctx.fillRect(x - rw - .01, y - r - .01, rw * 2 + .02, r * (k === 'half' ? .9 : 1.05)); line(ctx, x - rw, y - r * (k === 'half' ? .1 : -.05), x + rw, y - r * (k === 'half' ? .1 : -.05), .014); }
     ctx.restore();
   }
   if (glow) return;

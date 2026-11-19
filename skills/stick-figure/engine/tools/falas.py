@@ -5,7 +5,8 @@ Rode da pasta do vídeo (o make.py chama sozinho):  python falas.py            g
 Lê:
   falas.json        [{"quem": "duda", "texto": "Publicado! Bora?", "fala": "grafia para a voz (opcional)", "arquivo": "gravação própria (opcional)"}]
   elenco.json       (opcional) ids de personagens que aparecem sem falar: ["rex"]
-  personagens/<id>.json  a ficha; se não estiver na pasta do vídeo, vem da biblioteca (PERSONAGENS ou ~/personagens)
+  personagens/<id>.json  a ficha: a da pasta do vídeo vale primeiro; depois a pasta personagens/ mais próxima subindo
+                         as pastas (a biblioteca do projeto, que vai junto no git); por fim PERSONAGENS ou ~/personagens
 Escreve: audio/vo.wav (a conversa inteira), script.json (o texto de cada fala, para o alinhamento e a legenda),
          web/elenco.js (fichas e quem fala cada linha, para a boca sincronizada).
 Vozes da ficha ("voz"): {"kokoro": "pf_dora", "velocidade": 1.0}  grátis, roda no computador
@@ -23,16 +24,24 @@ SR = 24000
 PAUSA_MESMO, PAUSA_TROCA = 0.12, 0.28          # silêncio entre falas da mesma pessoa e na troca de quem fala
 
 
-def biblioteca():
-    return os.environ.get('PERSONAGENS') or os.path.join(os.path.expanduser('~'), 'personagens')
+def pastas_de_personagens():
+    """personagens/ do vídeo e de cada pasta acima dele (a mais próxima primeiro), depois a biblioteca pessoal."""
+    pastas, aqui = [], os.path.abspath('.')
+    while True:
+        pastas.append(os.path.join(aqui, 'personagens'))
+        acima = os.path.dirname(aqui)
+        if acima == aqui:
+            break
+        aqui = acima
+    return pastas + [os.environ.get('PERSONAGENS') or os.path.join(os.path.expanduser('~'), 'personagens')]
 
 
 def ficha(pid):
-    for pasta in ('personagens', biblioteca()):
+    for pasta in pastas_de_personagens():
         f = os.path.join(pasta, f'{pid}.json')
         if os.path.exists(f):
             return json.load(open(f, encoding='utf-8'))
-    sys.exit(f'falta a ficha de "{pid}": crie personagens/{pid}.json (ou {os.path.join(biblioteca(), pid + ".json")})')
+    sys.exit(f'falta a ficha de "{pid}": crie personagens/{pid}.json na pasta do projeto ou do vídeo')
 
 
 def chave(nome):

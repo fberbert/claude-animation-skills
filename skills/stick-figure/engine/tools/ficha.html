@@ -13,7 +13,9 @@ window.desenharFicha = (f, id) => {
   ctx.fillStyle = '#efe7d8'; ctx.fillRect(0, 700, 1600, 200);
   text(ctx, f.nome || id, 800, 92, 72, INK, null, 0, 'Poppins', 700);
   const voz = f.voz ? Object.entries(f.voz).map(([k, v]) => `${k} ${v}`).join(' · ') : 'sem voz';
-  text(ctx, [f.jeito, 'voz: ' + voz].filter(Boolean).join('  |  '), 800, 150, 28, '#6a6070', null, 0, 'Poppins', 700);
+  const legenda = [f.jeito, 'voz: ' + voz].filter(Boolean).join('  |  ');
+  ctx.font = '700 28px Poppins'; const cabe = Math.min(28, 28 * 1520 / ctx.measureText(legenda).width);   // texto longo diminui para caber
+  text(ctx, legenda, 800, 150, cabe, '#6a6070', null, 0, 'Poppins', 700);
   const poses = [
     ['parado', {}],
     ['falando', { face: { mouth: 'grin', browUp: .5 }, arms: { L: [.3, -.1], R: [1.6, -1.2] } }],

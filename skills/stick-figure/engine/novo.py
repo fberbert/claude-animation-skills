@@ -24,6 +24,13 @@ def main():
         for f in ('script.json', 'captions.json', 'audio/vo_kokoro.wav', 'audio/words_ref.json'):
             (reel / f).unlink(missing_ok=True)     # the pirate's voice and timing do not belong to the dialogue
         shutil.copytree(ENGINE / 'dialogo', reel, dirs_exist_ok=True, ignore=SKIP)
+        # a project library above the reel wins: drop the example's copy of a character the project already has
+        acima = [p / 'personagens' for p in reel.parents]
+        for f in list((reel / 'personagens').glob('*.json')):
+            if any((pasta / f.name).exists() for pasta in acima):
+                f.unlink()
+        if not any((reel / 'personagens').iterdir()):
+            (reel / 'personagens').rmdir()
     elif kind != 'explicador':
         sys.exit('kind must be explicador or dialogo')
     print(f'{kind}: {reel}')
