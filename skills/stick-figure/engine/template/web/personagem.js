@@ -257,7 +257,7 @@ const ACESSORIOS = {
   bermuda: { onde: 'roupa', cor: '#f4f2ec', desenha: (ctx, p, cor, f, a) => {   // bermuda até o meio da coxa, com cós, bolsos e barra
     const { tTop, tBot, lw } = p, tw = p.tw * (a.largura ?? 1), cint = tTop + (a.cintura ?? .21), barra = tBot + (a.barra ?? .085), costura = escurecer(cor, .3);   // "cintura", "barra" e "largura" ajustam
     const forma = () => { ctx.beginPath(); ctx.moveTo(-tw / 2, cint); ctx.lineTo(tw / 2, cint); ctx.lineTo(tw / 2 + .006, barra); ctx.lineTo(.008, barra); ctx.lineTo(0, tBot + .01); ctx.lineTo(-.008, barra); ctx.lineTo(-tw / 2 - .006, barra); ctx.closePath(); };
-    forma(); fillStroke(ctx, cor, lw);
+    forma(); fillStroke(ctx, cor, lw, a.contorno || INK);   // "contorno": cor da borda (ex.: um cinza claro em vez do preto)
     if (a.sombra !== false) { ctx.save(); forma(); ctx.clip(); ctx.fillStyle = escurecer(cor, .04); ctx.fillRect(tw * .3, cint, tw, 1); ctx.restore(); }   // lado na sombra ("sombra": false tira)
     line(ctx, -tw / 2, cint + .028, tw / 2, cint + .028, .007, costura);                                       // cós
     for (const s of [-1, 1]) {
