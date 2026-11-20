@@ -244,8 +244,10 @@ const ACESSORIOS = {
   } },
   camiseta: { cor: '#2b2a2e',   // camiseta de manga curta: gola com o pescoço aparecendo e mangas que acompanham os braços
     // combina com "tronco": {"largura": 0.29, "reto": true} na ficha (tronco de camiseta, mais largo e de cantos retos)
-    roupa: (ctx, p, cor, f, a) => {   // "pescoco": false não desenha o pescoço: a camiseta vai até o queixo
-      if (a.pescoco !== false) { ctx.beginPath(); ctx.moveTo(-.05, -.6); ctx.quadraticCurveTo(0, -.53, .05, -.6); ctx.closePath(); fillStroke(ctx, p.pele, p.lw * .8); }   // pescoço na gola
+    roupa: (ctx, p, cor, f, a) => {   // pescoço na gola: a pele sobe por trás da cabeça (que cobre o resto) e só a curva da gola tem traço
+      if (a.pescoco === false) return;   // "pescoco": false não desenha o pescoço: a camiseta vai até o queixo
+      ctx.beginPath(); ctx.moveTo(-.05, p.tTop - .06); ctx.lineTo(.05, p.tTop - .06); ctx.lineTo(.05, -.6); ctx.quadraticCurveTo(0, -.53, -.05, -.6); ctx.closePath(); ctx.fillStyle = p.pele; ctx.fill();
+      ctx.beginPath(); ctx.moveTo(-.056, -.602); ctx.quadraticCurveTo(0, -.528, .056, -.602); ctx.lineWidth = p.lw * .8; ctx.strokeStyle = INK; ctx.lineCap = 'round'; ctx.stroke();
     },
     manga: (ctx, p, cor) => {
       const [o, c] = p.pts, d = Math.hypot(c[0] - o[0], c[1] - o[1]), ux = (c[0] - o[0]) / d, uy = (c[1] - o[1]) / d, nx = -uy, ny = ux;
@@ -254,17 +256,25 @@ const ACESSORIOS = {
       ctx.lineTo(o[0] + ux * L - nx * w1, o[1] + uy * L - ny * w1); ctx.lineTo(ox - nx * w0, oy - ny * w0); ctx.closePath();
       ctx.lineJoin = 'round'; fillStroke(ctx, cor, p.lw * .8);
     } },
-  bermuda: { onde: 'roupa', cor: '#f4f2ec', desenha: (ctx, p, cor, f, a) => {   // bermuda até o meio da coxa, com cós, bolsos e barra
-    const { tTop, tBot, lw } = p, tw = p.tw * (a.largura ?? 1), cint = tTop + (a.cintura ?? .21), barra = tBot + (a.barra ?? .085), costura = escurecer(cor, .3);   // "cintura", "barra" e "largura" ajustam
+  bermuda: { onde: 'roupa', cor: '#f4f2ec', desenha: (ctx, p, cor, f, a) => {   // bermuda até o meio da coxa, com cós, bolsos e barra; "camisaPorFora": a camisa cai por cima do cós
+    const { tTop, tBot, lw } = p, tw = p.tw * (a.largura ?? 1), fora = a.camisaPorFora && p.camisa, costura = escurecer(cor, .3);
+    const cint = fora ? tBot - .045 : tTop + (a.cintura ?? .21), barra = tBot + (a.barra ?? .085);   // "cintura", "barra" e "largura" ajustam
     const forma = () => { ctx.beginPath(); ctx.moveTo(-tw / 2, cint); ctx.lineTo(tw / 2, cint); ctx.lineTo(tw / 2 + .006, barra); ctx.lineTo(.008, barra); ctx.lineTo(0, tBot + .01); ctx.lineTo(-.008, barra); ctx.lineTo(-tw / 2 - .006, barra); ctx.closePath(); };
-    forma(); fillStroke(ctx, cor, lw, a.contorno || INK);   // "contorno": cor da borda (ex.: um cinza claro em vez do preto)
+    forma(); fillStroke(ctx, cor, fora ? lw * .8 : lw, a.contorno || INK);   // "contorno": cor da borda (ex.: um cinza claro em vez do preto)
     if (a.sombra !== false) { ctx.save(); forma(); ctx.clip(); ctx.fillStyle = escurecer(cor, .04); ctx.fillRect(tw * .3, cint, tw, 1); ctx.restore(); }   // lado na sombra ("sombra": false tira)
-    line(ctx, -tw / 2, cint + .028, tw / 2, cint + .028, .007, costura);                                       // cós
+    const bolso = fora ? tBot + .022 : cint + .03;
+    if (!fora) line(ctx, -tw / 2, cint + .028, tw / 2, cint + .028, .007, costura);                           // cós
     for (const s of [-1, 1]) {
-      ctx.beginPath(); ctx.arc(s * tw / 2, cint + .03, .045, s > 0 ? Math.PI * .5 : 0, s > 0 ? Math.PI : Math.PI * .5); ctx.lineWidth = .007; ctx.strokeStyle = costura; ctx.stroke();   // bolsos
+      ctx.beginPath(); ctx.arc(s * tw / 2, bolso, .045, s > 0 ? Math.PI * .5 : 0, s > 0 ? Math.PI : Math.PI * .5); ctx.lineWidth = .007; ctx.strokeStyle = costura; ctx.stroke();   // bolsos
       line(ctx, s * (tw / 2 - .004), barra - .02, s * .014, barra - .02, .006, costura);                        // barra
     }
-    line(ctx, 0, cint + .028, 0, tBot - .02, .006, costura);                                                    // braguilha
+    if (!fora) { line(ctx, 0, cint + .028, 0, tBot - .02, .006, costura); return; }                          // braguilha
+    // a barra da camisa por cima do cós (na largura do tronco, não da bermuda): mesma cor e sombra, com traço só nas laterais e embaixo
+    const y0 = tBot - .07, hem = tBot + .03, x0 = -p.tw / 2, x1 = p.tw / 2;
+    const contorno = () => { ctx.moveTo(x0, y0); ctx.lineTo(x0 - .004, hem - .015); ctx.quadraticCurveTo(x0 - .004, hem, x0 + .015, hem); ctx.lineTo(x1 - .015, hem); ctx.quadraticCurveTo(x1 + .004, hem, x1 + .004, hem - .015); ctx.lineTo(x1, y0); };
+    ctx.beginPath(); contorno(); ctx.closePath(); ctx.fillStyle = p.camisa; ctx.fill();
+    ctx.save(); ctx.beginPath(); contorno(); ctx.closePath(); ctx.clip(); ctx.fillStyle = 'rgba(30,10,40,.07)'; ctx.fillRect(x0 + p.tw * .62, y0 - .01, p.tw, 1); ctx.restore();
+    ctx.beginPath(); contorno(); ctx.lineWidth = lw; ctx.strokeStyle = INK; ctx.lineJoin = 'round'; ctx.lineCap = 'round'; ctx.stroke();
   } },
   sapato: { onde: 'pe', cor: '#ff6fa8', desenha: (ctx, p, cor) => {   // sapato colorido, bico arredondado e sola mais escura
     const x = p.x + p.side * .01;
@@ -390,6 +400,36 @@ const ACESSORIOS = {
     }
   } },
 };
+// ---------- mãos: "maos" na ficha, "luva", "dedos" ou "robo" (ou {"estilo": "luva", "cor": "#fff"}); sem isso, a bolinha ----------
+// Desenhadas no sentido do antebraço (+x sai do pulso), com o polegar para a frente do corpo.
+function capsula(x0, y0, x1, y1, r) {
+  return ctx => { const a = Math.atan2(y1 - y0, x1 - x0); ctx.beginPath(); ctx.arc(x0, y0, r, a + Math.PI / 2, a - Math.PI / 2); ctx.arc(x1, y1, r, a - Math.PI / 2, a + Math.PI / 2); ctx.closePath(); };
+}
+const bloco = (x, y, w, h, r = .004) => ctx => { ctx.beginPath(); ctx.roundRect(x, y, w, h, r); };
+const oval = (x, y, rx, ry, rot = 0) => ctx => { ctx.beginPath(); ctx.ellipse(x, y, rx, ry, rot, 0, TAU); };
+function unidas(ctx, formas, cor, lw) {   // várias formas com um contorno só por fora
+  formas.forEach(f => { f(ctx); ctx.lineWidth = lw * 2; ctx.strokeStyle = INK; ctx.lineJoin = 'round'; ctx.stroke(); });
+  formas.forEach(f => { f(ctx); ctx.fillStyle = cor; ctx.fill(); });
+}
+const MAOS = {
+  luva: (ctx, cor) => {   // luva de desenho animado: palma, polegar e o vinco dos dedos
+    unidas(ctx, [oval(.024, .002, .036, .03), capsula(.012, -.016, .03, -.042, .011)], cor, .006);
+    line(ctx, .044, -.008, .058, -.008, .004); line(ctx, .044, .009, .058, .009, .004);
+  },
+  dedos: (ctx, cor) => {  // mão de quatro dedos, como nos desenhos clássicos
+    unidas(ctx, [oval(.018, .003, .027, .027), capsula(.03, -.012, .062, -.014, .009), capsula(.032, .004, .066, .004, .009),
+                 capsula(.03, .019, .06, .022, .009), capsula(.008, -.018, .024, -.046, .009)], cor, .006);
+  },
+  robo: (ctx, cor) => {   // mão quadrada de robô de videogame dos anos 80: palma em bloco, três dedos e polegar retos
+    unidas(ctx, [bloco(-.004, -.026, .046, .052), bloco(.04, -.024, .03, .013), bloco(.04, -.0065, .034, .013), bloco(.04, .011, .03, .013),
+                 bloco(.004, -.05, .016, .03)], cor, .006);
+    line(ctx, .005, .012, .03, .012, .004, escurecer(cor, .35));
+  },
+};
+function desenhaMao(ctx, pts, side, estilo, cor) {
+  const [, c, m] = pts, ang = Math.atan2(m[1] - c[1], m[0] - c[0]);
+  ctx.save(); ctx.translate(m[0], m[1]); ctx.rotate(ang); ctx.scale(1, -side); MAOS[estilo](ctx, cor); ctx.restore();
+}
 const ARCO_IRIS = ['#e8302a', '#f68b1f', '#f7d117', '#2fa84f', '#2f6fd6', '#8a3fc4'];
 // texto e logotipo não podem sair espelhados quando o personagem vira de lado (flip -1): desfaz o espelho do contexto
 function semEspelho(ctx) { const m = ctx.getTransform(); if (m.a * m.d - m.b * m.c < 0) ctx.scale(-1, 1); }
@@ -468,9 +508,10 @@ function personagem(ctx, quem, o = {}) {
     atras: (c, hx, hy, hr, lw) => { if (estilo.atras) estilo.atras(c, hx, hy, hr, lw, corCabelo, mec); desenha('atras', { hx, hy, hr, lw }); camadasImagem(c, f, 'atras', hx, hy, hr); },
     cabelo: (c, hx, hy, hr, lw) => { if (estilo.frente) estilo.frente(c, hx, hy, hr, lw, corCabelo, mec); desenha('rosto', { hx, hy, hr, lw }); camadasImagem(c, f, 'rosto', hx, hy, hr); },
     frente: (c, hx, hy, hr, lw) => { desenha('frente', { hx, hy, hr, lw, q: f.queixo || 1 }); camadasImagem(c, f, 'frente', hx, hy, hr); },
-    roupa: (c, tw, tTop, tBot, lw) => desenha('roupa', { tw, tTop, tBot, lw, pele }),
+    roupa: (c, tw, tTop, tBot, lw) => desenha('roupa', { tw, tTop, tBot, lw, pele, camisa: f.camisa }),
     manga: (c, pts, side, lw) => desenha('manga', { pts, side, lw, pele }),
     perna: (c, pts, side, lw) => desenha('perna', { pts, side, lw, pele }),
     pe: (c, x, y, side, lw) => desenha('pe', { x, y, side, lw }),
+    mao: f.maos && MAOS[f.maos.estilo || f.maos] ? (c, pts, side) => desenhaMao(c, pts, side, f.maos.estilo || f.maos, f.maos.cor || pele) : undefined,
   }));
 }

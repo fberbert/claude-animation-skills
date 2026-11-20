@@ -80,7 +80,8 @@ function drawStick(ctx, o) {
     if (o.propBehind) o.propBehind(ctx, k, p[2], p[3], side);
     membro(p);
     if (o.prop) o.prop(ctx, k, p[2], p[3], side);
-    if (pm) { circle(ctx, p[2][0], p[2][1], .033); fillStroke(ctx, pm, .012); }
+    if (!sil && o.mao) o.mao(ctx, p, side, k);   // gancho: mão desenhada (luva, dedos, robô) no lugar da bolinha
+    else if (pm) { circle(ctx, p[2][0], p[2][1], .033); fillStroke(ctx, pm, .012); }
     else { circle(ctx, p[2][0], p[2][1], .03); ctx.fillStyle = ink; ctx.fill(); }
     if (!sil && o.manga) o.manga(ctx, p, side, lw);   // gancho: manga que acompanha o braço (camiseta)
   }
